@@ -83,5 +83,6 @@
     "**/build-docs/site": true,
     "**/.pytest_cache": true,
     "**/__pycache__": true
-  }
+  },
+  "containers.containerCommand": "docker"
 }
