@@ -3,10 +3,12 @@
   "release-type": "simple",
   "include-component-in-tag": false,
   "include-v-in-tag": true,
+  "version-file": "version.txt",
   "packages": {
     ".": {
       "package-name": "fileflows-real-image",
       "release-type": "simple",
+      "version-file": "version.txt",
       "changelog-sections": [
         { "type": "feat", "section": "Features" },
         { "type": "fix", "section": "Bug Fixes" },

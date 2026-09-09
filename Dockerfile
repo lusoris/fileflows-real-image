@@ -34,8 +34,8 @@ RUN apt-get update && \
             libvpl2 libmfx-gen1.2 intel-opencl-icd; \
     fi && \
     ln -s /usr/lib/dotnet /dotnet && \
-    # Remove Canonical rockcraft pebble daemon to eliminate Go stdlib CVEs
-    rm -f /usr/bin/pebble && \
+    # Remove Canonical rockcraft pebble daemon and directories to eliminate Go stdlib CVEs
+    rm -rf /usr/bin/pebble /var/lib/pebble /etc/pebble && \
     # Clean package caches and docs
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/* /usr/share/man /usr/share/doc

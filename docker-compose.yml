@@ -16,18 +16,18 @@ services:
       - fileflows-common:/common
       # Uncomment and adjust to map your media library:
       # - /path/to/media:/media
-    # Optional Hardware Acceleration:
-    # Intel / AMD VA-API / QSV:
-    # devices:
-    #   - /dev/dri:/dev/dri
-    # NVIDIA GPU:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
+      # Optional Hardware Acceleration:
+      # Intel / AMD VA-API / QSV:
+      # devices:
+      #   - /dev/dri:/dev/dri
+      # NVIDIA GPU:
+      # deploy:
+      #   resources:
+      #     reservations:
+      #       devices:
+      #         - driver: nvidia
+      #           count: all
+      #           capabilities: [gpu]
 
 volumes:
   fileflows-data:

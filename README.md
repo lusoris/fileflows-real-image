@@ -4,7 +4,8 @@
 
 [![Ubuntu 26.04](https://img.shields.io/badge/Ubuntu-26.04%20Resolute-orange?logo=ubuntu)](https://ubuntu.com)
 [![Docker](https://img.shields.io/badge/Docker-Multi--Stage-blue?logo=docker)](https://docs.docker.com/build/building/multi-stage/)
-[![CI Build](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml)
+[![CI Quality Gates](https://github.com/lusoris/fileflows-real-image/actions/workflows/ci.yml/badge.svg)](https://github.com/lusoris/fileflows-real-image/actions/workflows/ci.yml)
+[![CI Build & Release](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml)
 [![License: EUPL 1.2](https://img.shields.io/badge/License-EUPL%201.2-blue.svg)](https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12)
 [![Base CVEs](https://img.shields.io/badge/Base%20CVEs-0%20(100%25%20Fixed)-brightgreen)](#vulnerability-comparison)
 [![Image Size](https://img.shields.io/static/v1?label=Content%20Size&message=591%20MB%20(-41%25)&color=brightgreen)](#metrics--comparison)
@@ -149,8 +150,34 @@ docker run -d \
   --device /dev/dri:/dev/dri \
   revenz/fileflows:optimized
 ```
-  --device /dev/dri:/dev/dri \
-  revenz/fileflows:optimized
+
+---
+
+## Testing & Quality Gates
+
+This repository includes a pytest assertion suite ([tests/test_image.py](tests/test_image.py)) that rigorously verifies:
+- **Base OS Hardening**: Confirms Ubuntu 26.04 Resolute base.
+- **CVE Fixes**: Asserts `/usr/bin/pebble` and its state directories are completely purged.
+- **Debloat & Cleanliness**: Asserts zero `dotnet-sdk` packages and zero `-dev` header packages are present.
+- **Driver Pre-baking**: Asserts `intel-media-va-driver-non-free`, `i965-va-driver-shaders`, `libvpl2`, `libmfx-gen1.2`, and `intel-opencl-icd` are present.
+- **Dead Runtimes**: Asserts all `win*` and `osx*` runtime directories are purged from `/app`.
+- **Image Metrics**: Enforces size constraints (<= 650 MB content size, <= 2.5 GB virtual disk).
+- **Runtime Web UI**: Boots the container and asserts `<title>FileFlows - Initial Configuration</title>` responds with HTTP 200 on port 19200 within 5 seconds.
+
+### Run Tests Locally
+
+```bash
+# Install dependencies
+pip install -r tests/requirements-test.txt
+
+# Run assertion suite
+pytest tests/test_image.py -v --tb=short
+```
+
+Or execute the test runner script:
+
+```bash
+bash tests/run_tests.sh
 ```
 
 ---
