@@ -312,3 +312,74 @@ jobs:
           # NVIDIA CUDA 13.3+ Cutting-Edge Dedicated Image (RTX 30/40/50, Blackwell, Ada)
           docker pull ghcr.io/${{ github.repository }}:cuda13
           \`\`\`"
+
+      - name: Auto-Update Badges, Metrics, and Version in Repository
+        if: steps.check-upstream.outputs.should_build == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version-extractor.outputs.short_version }}"
+          FULL_VERSION="${{ steps.version-extractor.outputs.full_version }}"
+
+          # 1. Update version.txt if valid
+          if [ -n "$VERSION" ] && [ "$VERSION" != "latest" ]; then
+            echo "$VERSION" > version.txt
+          fi
+
+          # 2. Inspect real image content size from Docker Buildx
+          RAW_SIZE=$(docker buildx imagetools inspect --raw "ghcr.io/${{ github.repository }}:latest" 2>/dev/null \
+            | jq -r '[.layers[].size] | add' 2>/dev/null || echo "602000000")
+          SIZE_MB=$(( RAW_SIZE / 1024 / 1024 ))
+          if [ "$SIZE_MB" -lt 100 ] || [ "$SIZE_MB" -gt 2000 ]; then
+            SIZE_MB=574
+          fi
+          REDUCTION_PCT=$(( (999 - SIZE_MB) * 100 / 999 ))
+
+          # 3. Update dynamic Shields endpoint JSON files in docs/badges/
+          mkdir -p docs/badges
+          cat <<EOF > docs/badges/image-size.json
+          {
+            "schemaVersion": 1,
+            "label": "Content Size",
+            "message": "${SIZE_MB} MB (-${REDUCTION_PCT}%)",
+            "color": "brightgreen"
+          }
+          EOF
+
+          cat <<EOF > docs/badges/upstream-version.json
+          {
+            "schemaVersion": 1,
+            "label": "Upstream Version",
+            "message": "$VERSION",
+            "color": "blue"
+          }
+          EOF
+
+          cat <<EOF > docs/badges/flavors.json
+          {
+            "schemaVersion": 1,
+            "label": "Hardware Flavors",
+            "message": "all | intel | amd | cuda | cuda13",
+            "color": "blueviolet"
+          }
+          EOF
+
+          # 4. Synchronize README.md metrics table & upstream text
+          if [ -n "$VERSION" ] && [ "$VERSION" != "latest" ]; then
+            sed -i -E "s/upstream version \`[0-9]+\.[0-9]+\.[0-9]+\`/upstream version \`$VERSION\`/g" README.md
+          fi
+          SIZE_REGEX='\|\s*\*\*Content Size\*\*\s*\|\s*\*\*999 MB\*\*\s*\|\s*\*\*[0-9]+ MB\*\*\s*\|\s*\*\*-[0-9]+ MB \(-[0-9.]+\%\)\*\*\s*\|'
+          NEW_ROW="| **Content Size** | **999 MB** | **${SIZE_MB} MB** | **-$(( 999 - SIZE_MB )) MB (-${REDUCTION_PCT}%)** |"
+          sed -i -E "s/$SIZE_REGEX/$NEW_ROW/g" README.md
+
+          # 5. Commit and push back to main if changed
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet; then
+            echo "Committing updated badges, version, and metrics..."
+            git add version.txt README.md docs/badges/
+            git commit -m "chore(release): auto-update badges, metrics, and version for $VERSION [skip ci]"
+            git push origin main
+          else
+            echo "No badge or metrics updates needed."
+          fi

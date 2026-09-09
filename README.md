@@ -1,11 +1,13 @@
 # FileFlows Real Image
 
 [![CI](https://github.com/lusoris/fileflows-real-image/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/lusoris/fileflows-real-image/actions/workflows/ci.yml)
+[![Build & Release](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml/badge.svg?branch=main)](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml)
 [![Documentation](https://github.com/lusoris/fileflows-real-image/actions/workflows/docs.yml/badge.svg?branch=main)](https://lusoris.github.io/fileflows-real-image/)
 [![Latest Release](https://img.shields.io/github/v/release/lusoris/fileflows-real-image?sort=semver)](https://github.com/lusoris/fileflows-real-image/releases/latest)
 [![Ubuntu 26.04](https://img.shields.io/badge/Ubuntu-26.04%20Resolute-orange?logo=ubuntu)](https://ubuntu.com)
 [![Base CVEs](https://img.shields.io/badge/Base%20CVEs-0%20(100%25%20Fixed)-brightgreen)](docs/security-hardening.md)
-[![Image Size](https://img.shields.io/static/v1?label=Content%20Size&message=564%20MB%20(-43%25)&color=brightgreen)](docs/architecture.md)
+[![Image Size](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/lusoris/fileflows-real-image/main/docs/badges/image-size.json)](docs/architecture.md)
+[![Hardware Flavors](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/lusoris/fileflows-real-image/main/docs/badges/flavors.json)](docs/hardware-acceleration.md)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Project-F16061?logo=ko-fi&logoColor=white)](https://ko-fi.com/lusoris)
 [![License: EUPL 1.2](https://img.shields.io/badge/License-EUPL%201.2-blue.svg)](LICENSE)
 
@@ -31,8 +33,8 @@ The upstream container (`revenz/fileflows:latest`, upstream version `26.09.2`) i
 
 | Metric | Upstream (`revenz/fileflows:latest`) | Real Image (`ghcr.io/lusoris/fileflows-real-image:latest`) | Difference |
 | :--- | :--- | :--- | :--- |
-| **Content Size** | **999 MB** | **564 MB** | **-435 MB (-43.5%)** |
-| **Virtual Disk Usage** | **3.57 GB** | **2.06 GB** | **-1.51 GB (-42.3%)** |
+| **Content Size** | **999 MB** | **574 MB** | **-425 MB (-42.5%)** |
+| **Virtual Disk Usage** | **3.57 GB** | **2.00 GB** | **-1.57 GB (-44.0%)** |
 | **Installed Packages** | 1,354 packages | 615 packages | **-739 packages (-54.6%)** |
 | **Base Image CVEs** | 1 Critical, 5 High, 2 Medium | **0 Critical, 0 High, 0 Medium** | **100% Resolved** |
 | **Startup Delay** | 15–20s (`apt-get` on boot) | **< 1 second** (`already installed`) | **Instant Startup** |

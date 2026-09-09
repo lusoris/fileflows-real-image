@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "label": "Hardware Flavors",
+  "message": "all | intel | amd | cuda | cuda13",
+  "color": "blueviolet"
+}
