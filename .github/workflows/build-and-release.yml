@@ -327,8 +327,20 @@ jobs:
           fi
 
           # 2. Inspect real image content size from Docker Buildx
-          RAW_SIZE=$(docker buildx imagetools inspect --raw "ghcr.io/${{ github.repository }}:latest" 2>/dev/null \
-            | jq -r '[.layers[].size] | add' 2>/dev/null || echo "602000000")
+          RAW_INSPECT=$(docker buildx imagetools inspect --raw "ghcr.io/${{ github.repository }}:latest" 2>/dev/null || echo "{}")
+          RAW_SIZE=0
+          if echo "$RAW_INSPECT" | jq -e '.manifests' >/dev/null 2>&1; then
+            AMD64_DIGEST=$(echo "$RAW_INSPECT" | jq -r '.manifests[]? | select(.platform.architecture=="amd64") | .digest' | head -n 1)
+            if [ -n "$AMD64_DIGEST" ]; then
+              RAW_SIZE=$(docker buildx imagetools inspect --raw "ghcr.io/${{ github.repository }}@${AMD64_DIGEST}" 2>/dev/null \
+                | jq -r '[.layers[].size] | add' 2>/dev/null || echo "0")
+            fi
+          else
+            RAW_SIZE=$(echo "$RAW_INSPECT" | jq -r '[.layers[].size] | add' 2>/dev/null || echo "0")
+          fi
+          if [ -z "$RAW_SIZE" ] || [ "$RAW_SIZE" = "null" ] || [ "$RAW_SIZE" -eq 0 ] 2>/dev/null; then
+            RAW_SIZE=602000000
+          fi
           SIZE_MB=$(( RAW_SIZE / 1024 / 1024 ))
           if [ "$SIZE_MB" -lt 100 ] || [ "$SIZE_MB" -gt 2000 ]; then
             SIZE_MB=574
@@ -379,7 +391,8 @@ jobs:
             echo "Committing updated badges, version, and metrics..."
             git add version.txt README.md docs/badges/
             git commit -m "chore(release): auto-update badges, metrics, and version for $VERSION [skip ci]"
-            git push origin main
+            git pull origin main --rebase || true
+            git push origin HEAD:main
           else
             echo "No badge or metrics updates needed."
           fi

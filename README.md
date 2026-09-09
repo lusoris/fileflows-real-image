@@ -4,6 +4,7 @@
 [![Build & Release](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml/badge.svg?branch=main)](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml)
 [![Documentation](https://github.com/lusoris/fileflows-real-image/actions/workflows/docs.yml/badge.svg?branch=main)](https://lusoris.github.io/fileflows-real-image/)
 [![Latest Release](https://img.shields.io/github/v/release/lusoris/fileflows-real-image?sort=semver)](https://github.com/lusoris/fileflows-real-image/releases/latest)
+[![Upstream Version](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/lusoris/fileflows-real-image/main/docs/badges/upstream-version.json)](https://fileflows.com)
 [![Ubuntu 26.04](https://img.shields.io/badge/Ubuntu-26.04%20Resolute-orange?logo=ubuntu)](https://ubuntu.com)
 [![Base CVEs](https://img.shields.io/badge/Base%20CVEs-0%20(100%25%20Fixed)-brightgreen)](docs/security-hardening.md)
 [![Image Size](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/lusoris/fileflows-real-image/main/docs/badges/image-size.json)](docs/architecture.md)
