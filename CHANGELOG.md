@@ -10,24 +10,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [26.09.2-real.11] - 2026-09-09
+
+### Added
+- NASA/JPL "Power of 10" safety-critical engineering standards adapted for OCI containers and test engineering in [docs/principles.md](docs/principles.md).
+- Automated AST compliance test suite `tests/test_principles.py` enforcing short functions (<= 60 lines), checked returns (`set -euo pipefail`), bounded polling loops, least privilege (`cap_drop: [ALL]`, `no-new-privileges`), and high assertion density (average >= 2.0 assertions/test; achieving 3.62 across 199 assertions).
+- Expanded total offline unit test coverage to **97.04%** across 41 assertions.
+
+### Fixed
+- Suppressed misleading "Installing intel-media-va-driver-non-free..." echo log output during container boot for non-Intel flavors (`:amd`, `:cuda`, `:cuda13`) in `docker-entrypoint.sh`.
+- Resolved MkDocs strict mode relative link resolution warning for `docker-compose.yml` in [docs/principles.md](docs/principles.md).
+
+---
+
+## [26.09.2-real.10] - 2026-09-09
+
 ### Added
 - Comprehensive multi-AI contributor directives: [AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md), [.windsurfrules](.windsurfrules), and [.cursor/rules/fileflows.mdc](.cursor/rules/fileflows.mdc).
 - Standardized modular agent skills in `.agents/skills/` (`build-flavor`, `test-image`, `lint-all`, `sync-upstream`, `security-audit`, `prep-release`).
 - Claude Code tool configurations, symlinked skills, and review subagents in `.claude/` (`container-reviewer`, `docs-reviewer`).
 - GitHub Copilot instructions in [.github/copilot-instructions.md](.github/copilot-instructions.md) and root [.cursorrules](.cursorrules).
 - Zed editor configuration and tasks in [.zed/](.zed/).
-- NASA/JPL "Power of 10" safety-critical engineering standards adapted for OCI containers and test engineering in [docs/principles.md](docs/principles.md).
-- Automated AST compliance test suite `tests/test_principles.py` enforcing short functions (<= 60 lines), checked returns (`set -euo pipefail`), bounded polling loops, least privilege (`cap_drop: [ALL]`, `no-new-privileges`), and high assertion density (average >= 2.0 assertions/test; achieving 3.62 across 199 assertions).
-- Comprehensive automated test coverage expansion with 6 new offline test modules:
+- Comprehensive automated test coverage expansion with 5 new offline test modules:
   - `tests/test_dockerfile.py`: Static analysis, multi-stage topology, rootfs squashing, and invariant validation.
   - `tests/test_workflows.py`: GitHub Actions YAML schema, Node 24 runtime enforcement, and flavor matrix validation.
   - `tests/test_agent_skills.py`: Agent skills YAML frontmatter, Claude review subagents, and editor task verification.
   - `tests/test_badges.py`: Shields.io dynamic endpoint schema and metric synchrony.
   - `tests/test_compose.py`: Docker Compose service specification and hardware device pass-through validation.
-  - `tests/test_principles.py`: Automated NASA/JPL Power of 10 compliance checking.
-- Test coverage measurement tooling via `pytest-cov`, reaching **97.04%** offline unit test coverage (506 statements) with dedicated Makefile targets (`make test-unit`, `make coverage`, `make test-all`).
+- Test coverage measurement tooling via `pytest-cov`, reaching **96.8%** offline unit test coverage with dedicated Makefile targets (`make test-unit`, `make coverage`, `make test-all`).
 - Developer convenience tooling: [Makefile](Makefile) and [pyproject.toml](pyproject.toml).
 - Curated zero-shareware VS Code workspace configuration in [.vscode/](.vscode/).
+
+---
+
+## [26.09.2-real.9] - 2026-09-09
 
 ### Changed
 - Streamlined `:cuda` flavor to pure host-based NVIDIA driver injection (`libcuda`, NVENC, NVDEC) via NVIDIA Container Toolkit, cutting content size to 473 MB and virtual size to 1.65 GB (-72%).
