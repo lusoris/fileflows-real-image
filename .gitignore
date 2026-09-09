@@ -1,0 +1,19 @@
+# Local build artifacts and extracted directories
+/app/
+/docker-bin/
+/tools/
+*.tar
+*.log
+.DS_Store
+Thumbs.db
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# IDE and local configuration
+.vscode/
+.idea/
+*.swp
+*~

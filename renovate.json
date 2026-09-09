@@ -1,0 +1,36 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":dependencyDashboard",
+    ":semanticCommits"
+  ],
+  "timezone": "Europe/Berlin",
+  "schedule": ["before 6am on monday"],
+  "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "automerge": false,
+  "packageRules": [
+    {
+      "description": "Keep GitHub Action digest updates together for one review.",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions",
+      "automerge": false
+    },
+    {
+      "description": "Keep Docker base image updates grouped.",
+      "matchManagers": ["dockerfile"],
+      "groupName": "docker base images",
+      "automerge": false
+    },
+    {
+      "description": "Major upgrades require an explicit compatibility review.",
+      "matchUpdateTypes": ["major"],
+      "labels": ["dependencies", "breaking-change"],
+      "automerge": false
+    }
+  ]
+}
