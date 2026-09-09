@@ -25,3 +25,7 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Documentation build output
+/build-docs/
+/site/

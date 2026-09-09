@@ -237,3 +237,46 @@ class TestDocsConsistency:
         assert "intel-media-va-driver-non-free" in dockerfile_text
         assert "intel-media-va-driver-non-free" in agents_text
         assert "intel-media-va-driver-non-free" in readme_text
+
+    def test_mkdocs_config_and_nav(self):
+        """Assert mkdocs.yml exists, is valid YAML, and all nav items exist on disk."""
+        mkdocs_file = REPO_ROOT / "mkdocs.yml"
+        assert mkdocs_file.exists(), "mkdocs.yml must exist"
+
+        # mkdocs.yml may contain !!python/name: tags used by pymdownx
+        class MkDocsLoader(yaml.SafeLoader):
+            pass
+
+        MkDocsLoader.add_multi_constructor("tag:yaml.org,2002:python/name:", lambda loader, suffix, node: suffix)
+        config = yaml.load(mkdocs_file.read_text(encoding="utf-8"), Loader=MkDocsLoader)
+        assert config.get("site_name") == "FileFlows Real Image"
+        assert config.get("theme", {}).get("name") == "material"
+
+        docs_dir = REPO_ROOT / config.get("docs_dir", "docs")
+        assert docs_dir.is_dir(), f"docs_dir '{docs_dir}' must exist"
+
+        def extract_nav_targets(nav_list):
+            targets = []
+            for item in nav_list:
+                if isinstance(item, str):
+                    targets.append(item)
+                elif isinstance(item, dict):
+                    for val in item.values():
+                        if isinstance(val, str):
+                            targets.append(val)
+                        elif isinstance(val, list):
+                            targets.extend(extract_nav_targets(val))
+            return targets
+
+        nav_items = extract_nav_targets(config.get("nav", []))
+        assert len(nav_items) > 0, "mkdocs.yml nav must contain items"
+
+        missing_nav_files = []
+        for nav_path in nav_items:
+            target = (docs_dir / nav_path).resolve()
+            if not target.exists():
+                missing_nav_files.append(f"Nav target '{nav_path}' not found at {target}")
+
+        assert not missing_nav_files, (
+            "Found broken navigation paths in mkdocs.yml:\n" + "\n".join(missing_nav_files)
+        )

@@ -1,39 +1,29 @@
 # FileFlows Real Image
 
-> A multi-stage, hardened Dockerfile that transforms the fat development container published as `revenz/fileflows:latest` into a clean, production-ready image.
-
+[![CI](https://github.com/lusoris/fileflows-real-image/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/lusoris/fileflows-real-image/actions/workflows/ci.yml)
+[![Documentation](https://github.com/lusoris/fileflows-real-image/actions/workflows/docs.yml/badge.svg?branch=main)](https://lusoris.github.io/fileflows-real-image/)
+[![Latest Release](https://img.shields.io/github/v/release/lusoris/fileflows-real-image?sort=semver)](https://github.com/lusoris/fileflows-real-image/releases/latest)
 [![Ubuntu 26.04](https://img.shields.io/badge/Ubuntu-26.04%20Resolute-orange?logo=ubuntu)](https://ubuntu.com)
-[![Docker](https://img.shields.io/badge/Docker-Multi--Stage-blue?logo=docker)](https://docs.docker.com/build/building/multi-stage/)
-[![CI Quality Gates](https://github.com/lusoris/fileflows-real-image/actions/workflows/ci.yml/badge.svg)](https://github.com/lusoris/fileflows-real-image/actions/workflows/ci.yml)
-[![CI Build & Release](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml)
-[![License: EUPL 1.2](https://img.shields.io/badge/License-EUPL%201.2-blue.svg)](https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12)
-[![Base CVEs](https://img.shields.io/badge/Base%20CVEs-0%20(100%25%20Fixed)-brightgreen)](#metrics--comparison)
-[![Image Size](https://img.shields.io/static/v1?label=Content%20Size&message=564%20MB%20(-43%25)&color=brightgreen)](#metrics--comparison)
+[![Base CVEs](https://img.shields.io/badge/Base%20CVEs-0%20(100%25%20Fixed)-brightgreen)](docs/security-hardening.md)
+[![Image Size](https://img.shields.io/static/v1?label=Content%20Size&message=564%20MB%20(-43%25)&color=brightgreen)](docs/architecture.md)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Project-F16061?logo=ko-fi&logoColor=white)](https://ko-fi.com/lusoris)
+[![License: EUPL 1.2](https://img.shields.io/badge/License-EUPL%201.2-blue.svg)](LICENSE)
+
+> A hardened, zero-CVE, production-ready multi-stage container for [FileFlows](https://fileflows.com) that slashes image size by 43%, eliminates base vulnerabilities, and boots in under 1 second.
+
+Complete documentation is available at **[lusoris.github.io/fileflows-real-image](https://lusoris.github.io/fileflows-real-image/)**.
 
 ---
 
-## The Problem with Upstream `revenz/fileflows:latest`
+## Why FileFlows Real Image?
 
-The official `revenz/fileflows:latest` image is distributed with full development toolchains and unnecessary build artifacts:
+The upstream container (`revenz/fileflows:latest`, upstream version `26.09.2`) is distributed with full developer toolchains, unneeded service daemons, and missing drivers that slow down homelab and production deployments:
 
-1. **Full .NET 10 SDK (638MB on disk)**: Upstream installs `dotnet-sdk-10.0` (compilers, templates, and targeting packs) for an application that only needs the lightweight runtime (`aspnetcore-runtime-10.0`).
-2. **C/C++ Development Toolchain (-dev packages)**: Upstream installs `-dev` header packages (`libssl-dev`, `libicu-dev`, `libavformat-dev`, `libavcodec-dev`, `libswscale-dev`, `libmfx-dev`, `libvpl-dev`, `libc6-dev`, `linux-libc-dev`, and `manpages-dev`).
-3. **15–20s Container Boot Delay**: The upstream entrypoint script checks for `intel-media-va-driver-non-free`. Because upstream omitted it from their build, **every single container boot** triggers `apt-get update && apt-get install -y intel-media-va-driver-non-free`, delaying startup by 15–20 seconds and downloading 30MB+ over the network.
-4. **Go `stdlib 1.26.5` Base Image CVEs**: Upstream's base includes Canonical's Rockcraft `pebble` service daemon, introducing 1 Critical (`CVE-2026-39821`) and 5 High CVEs (`CVE-2026-56862`, `CVE-2026-56859`, `CVE-2026-56853`, `CVE-2026-46600`, `CVE-2026-33818`). FileFlows never uses `pebble`.
-5. **140MB+ Dead Windows & macOS Runtimes**: Cross-platform publish outputs include `win`, `win-x64`, `win-arm64`, `osx`, `osx-x64`, and `osx-arm64` directories in `/app/*/runtimes`. In addition to bloat, the Windows DLLs trigger Critical `CVE-2021-24112` (`System.Drawing.Common 4.7.0`) and High `CVE-2024-0056` (`Microsoft.Data.SqlClient 3.0.0`).
-
----
-
-## What This Project Does
-
-This repository provides a self-contained, multi-stage `Dockerfile` that builds directly from the upstream image (`revenz/fileflows:latest`) without requiring local files or folders:
-
-- **100% Zero Base CVEs**: Drops the unused `pebble` binary via rootfs squashing (`FROM scratch COPY --from=...`), clearing all 8 Go base CVEs.
-- **ASP.NET Core Runtime (10.0.12)**: Replaces the full 638MB SDK with the lean runtime (~96MB), saving over 500MB while preserving in-memory Roslyn scripting and execution.
-- **Production Shared Libraries**: Replaces all `-dev` packages with lean production shared libraries (`libavcodec62`, `libavformat62`, `libswscale9`, `libvpl2`, `libmfx-gen1.2`, `libicu78`, `libssl3`).
-- **Instant Boot**: Pre-bakes `intel-media-va-driver-non-free` at build time so the container boots in `< 1s` without running `apt-get` on startup.
-- **Pruned Dead Runtimes**: Strips all `win*` and `osx*` runtime folders from `/app` directly during build.
-- **Hardware Acceleration Intact**: Full support for Intel QuickSync (VA-API/QSV via `intel-media-va-driver-non-free`, `i965-va-driver-shaders`, `libvpl2`, `libmfx-gen1.2`, `intel-opencl-icd`), AMD/Intel Mesa VA-API (`mesa-va-drivers`), and NVIDIA GPUs.
+- **Full .NET 10 SDK Bloat (638 MB)**: Upstream installs `dotnet-sdk-10.0` instead of the lean `aspnetcore-runtime-10.0` (~96 MB).
+- **15–20s Boot Delay**: Upstream triggers `apt-get update && apt-get install intel-media-va-driver-non-free` on **every container boot**. Real Image pre-bakes the driver stack for instant `< 1s` boot.
+- **Go stdlib Base CVEs**: Upstream bundles Canonical's Rockcraft `pebble` service daemon, introducing 1 Critical (`CVE-2026-39821`) and 5 High CVEs. FileFlows never uses `pebble`.
+- **140MB+ Dead Cross-Platform Runtimes**: Strips unused `win*` and `osx*` runtime folders that trigger false-positive Windows CVEs on Linux.
+- **Rootfs Squashing**: Flattened via `FROM scratch COPY --from=base-builder / /` for 100% layer efficiency and zero retained deleted layer files.
 
 ---
 
@@ -44,54 +34,16 @@ This repository provides a self-contained, multi-stage `Dockerfile` that builds 
 | **Content Size** | **999 MB** | **564 MB** | **-435 MB (-43.5%)** |
 | **Virtual Disk Usage** | **3.57 GB** | **2.06 GB** | **-1.51 GB (-42.3%)** |
 | **Installed Packages** | 1,354 packages | 615 packages | **-739 packages (-54.6%)** |
-| **Base Image CVEs** | 1 Critical, 5 High, 2 Medium | **0 Critical, 0 High, 0 Medium, 0 Low** | **100% Resolved** |
+| **Base Image CVEs** | 1 Critical, 5 High, 2 Medium | **0 Critical, 0 High, 0 Medium** | **100% Resolved** |
 | **Startup Delay** | 15–20s (`apt-get` on boot) | **< 1 second** (`already installed`) | **Instant Startup** |
+| **Layer Efficiency** | ~75% (repeated layer writes) | **100% (Single squashed layer)** | **Maximum Density** |
 | **.NET Runtime** | .NET 10.0.11 SDK (638 MB) | .NET 10.0.12 Runtime (~96 MB) | **Updated & Lean** |
 
 ---
 
-## Quick Start (Pre-built Image)
+## Quick Start
 
-Pull the pre-built image directly from GitHub Container Registry (GHCR):
-
-```bash
-docker pull ghcr.io/lusoris/fileflows-real-image:latest
-```
-
----
-
-## How to Build Locally
-
-```bash
-docker build -t revenz/fileflows:optimized .
-```
-
-To build from a specific upstream version tag instead of `latest`:
-
-```bash
-docker build --build-arg UPSTREAM_IMAGE=revenz/fileflows:26.09.2 -t revenz/fileflows:optimized .
-```
-
----
-
-## How to Run
-
-### Using Docker Compose (Recommended)
-
-A ready-to-use [`docker-compose.yml`](docker-compose.yml) structured according to the official [FileFlows Docker Generator](https://fileflows.com/docs/installation/docker) is included in the repository. Simply run:
-
-```bash
-docker compose up -d
-```
-
-To configure custom ports (default `19200`), timezone, or UID/GID, copy `.env.example` to `.env`:
-
-```bash
-cp .env.example .env
-docker compose up -d
-```
-
-The standard `docker-compose.yml` uses the optimized image directly:
+Run the container using [Docker Compose](docker-compose.yml):
 
 ```yaml
 services:
@@ -142,56 +94,35 @@ volumes:
   fileflows-common:
 ```
 
-Or run via Docker CLI:
-
 ```bash
-docker run -d \
-  --name fileflows \
-  --restart unless-stopped \
-  -p 19200:5000 \
-  -e TZ=UTC \
-  -e PUID=1000 \
-  -e PGID=1000 \
-  -v fileflows-data:/app/Data \
-  -v fileflows-temp:/temp \
-  -v fileflows-logs:/app/Logs \
-  -v fileflows-common:/common \
-  -v /path/to/media:/media \
-  --device /dev/dri:/dev/dri \
-  revenz/fileflows:optimized
+docker compose up -d
 ```
+
+Access the web interface at `http://localhost:19200`.
 
 ---
 
-## Testing & Quality Gates
+## Documentation
 
-This repository includes a pytest assertion suite ([tests/test_image.py](tests/test_image.py)) that rigorously verifies:
-- **Base OS Hardening**: Confirms Ubuntu 26.04 Resolute base.
-- **CVE Fixes**: Asserts `/usr/bin/pebble` and its state directories are completely purged.
-- **Debloat & Cleanliness**: Asserts zero `dotnet-sdk` packages and zero `-dev` header packages are present.
-- **Driver Pre-baking**: Asserts `intel-media-va-driver-non-free`, `i965-va-driver-shaders`, `libvpl2`, `libmfx-gen1.2`, and `intel-opencl-icd` are present.
-- **Dead Runtimes**: Asserts all `win*` and `osx*` runtime directories are purged from `/app`.
-- **Image Metrics**: Enforces size constraints (<= 650 MB content size, <= 2.5 GB virtual disk).
-- **Runtime Web UI**: Boots the container and asserts `<title>FileFlows - Initial Configuration</title>` responds with HTTP 200 on port 19200 within 5 seconds.
+Detailed architectural and deployment guides are available in the [documentation suite](https://lusoris.github.io/fileflows-real-image/):
 
-### Run Tests Locally
+- **[Getting Started](docs/getting-started.md)**: Compose configuration, environment variables, healthchecks, and CLI deployment.
+- **[Architecture & Build Pipeline](docs/architecture.md)**: Multi-stage build design, rootfs flattening, and .NET 10 runtime tuning.
+- **[Hardware Acceleration](docs/hardware-acceleration.md)**: Setting up Intel QuickSync (VA-API/QSV), AMD Mesa VA-API, and NVIDIA Container Toolkit.
+- **[Security Hardening](docs/security-hardening.md)**: Zero-CVE architecture, capability dropping (`cap_drop: [ALL]`), and zombie process reaping (`init: true`).
+- **[CI/CD & Releases](docs/ci-cd-releases.md)**: Upstream-anchored versioning (`v<ver>-real.<rev>`), Dive efficiency gate, and 24h automated security rebuilds.
+- **[Frequently Asked Questions](docs/faq.md)**: Why read-only rootfs fails, dynamic FFmpeg libraries, and custom flow scripts.
 
-```bash
-# Install dependencies
-pip install -r tests/requirements-test.txt
+---
 
-# Run assertion suite
-pytest tests/test_image.py -v --tb=short
-```
+## Support & Sponsorship
 
-Or execute the test runner script:
+If this project saves you disk space, network bandwidth, or boot time across your homelab or media server, support is available through [Ko-fi](https://ko-fi.com/lusoris).
 
-```bash
-bash tests/run_tests.sh
-```
+[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Project-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/lusoris)
 
 ---
 
 ## License
 
-This Dockerfile and optimization recipe is licensed under the [European Union Public Licence (EUPL-1.2)](LICENSE). FileFlows itself is subject to its original upstream licensing.
+This optimization recipe and Dockerfile are licensed under the [European Union Public Licence (EUPL-1.2)](LICENSE). FileFlows itself is subject to its original upstream licensing.

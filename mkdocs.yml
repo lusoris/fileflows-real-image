@@ -1,0 +1,82 @@
+site_name: "FileFlows Real Image"
+site_url: "https://lusoris.github.io/fileflows-real-image/"
+site_description: "Hardened, minimal, zero-CVE multi-stage Docker container for FileFlows."
+repo_url: "https://github.com/lusoris/fileflows-real-image"
+repo_name: "lusoris/fileflows-real-image"
+edit_uri: "edit/main/docs/"
+copyright: "EUPL-1.2 &copy; 2026 Lusoris"
+
+docs_dir: docs
+site_dir: build-docs/site
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - def_list
+  - footnotes
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Architecture: architecture.md
+  - Hardware Acceleration: hardware-acceleration.md
+  - Security & Hardening: security-hardening.md
+  - CI/CD & Releases: ci-cd-releases.md
+  - FAQ: faq.md
