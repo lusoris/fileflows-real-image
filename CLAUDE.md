@@ -60,12 +60,13 @@ Review agents in `.claude/agents/`:
 4. **Don't install ROCm**: AMD hardware transcoding uses Mesa Gallium VA-API and Vulkan Video. Never install ROCm compute SDKs.
 5. **Don't let Dockerfiles drift**: [Dockerfile](Dockerfile) and [Dockerfile.optimized](Dockerfile.optimized) must remain 100% byte-identical.
 6. **Don't commit broken docs**: Every change to flavors, sizes, or Compose configs must be synchronized across [README.md](README.md), [docs/](docs/), and [docker-compose.yml](docker-compose.yml). Run `make test-docs` before every commit.
+7. **Don't violate NASA/JPL Power of 10 rules**: Follow [docs/principles.md](docs/principles.md). Keep functions <= 60 lines, maintain assertion density >= 2.0, and check every return value.
 
 ---
 
-## 4. Verification Checklist Before Handoff
+## 5. Verification Checklist Before Handoff
 
-- [ ] `make test-docs` passes cleanly with 0 failures.
+- [ ] `make test` and `make coverage` pass cleanly with >= 95% coverage and assertion density >= 2.0.
 - [ ] `make lint` (Hadolint, Yamllint, ShellCheck) passes with 0 warnings.
 - [ ] `Dockerfile` and `Dockerfile.optimized` are verified identical via `diff -u`.
 - [ ] Any modified markdown conforms to `.markdownlint.json`.

@@ -56,6 +56,9 @@ It achieves:
    - `:cuda` must use **host-based driver injection** (`libcuda.so.1`, `libnvidia-encode.so.1`, `libnvcuvid.so.1`) via NVIDIA Container Toolkit with zero in-container package bloat.
    - `:cuda13` must install **only** minimal video filter essentials (`cuda-nvrtc-13-4`, `cuda-cudart-13-4`, `libnpp-13-4`). Never install `libcublas`, `libcusolver`, `libcusparse`, `libcufft`, `libcurand`, or `cuda-compat`.
    - `:amd` must use **Mesa Gallium VA-API + Vulkan RADV** (`mesa-libgallium`, `mesa-vulkan-drivers`). Never install ROCm compute SDKs for video transcoding.
+9. **NASA/JPL Power of 10 Compliance**:
+   - All code, scripts, Dockerfiles, and test suites must adhere to the adapted [NASA/JPL Power of 10](docs/principles.md) rules.
+   - Enforces bounded loops, short functions (<= 60 lines), checked return codes (`set -euo pipefail`), average assertion density >= 2.0 per test, and zero warnings across all linters.
 
 ---
 

@@ -78,5 +78,6 @@ nav:
   - Architecture: architecture.md
   - Hardware Acceleration: hardware-acceleration.md
   - Security & Hardening: security-hardening.md
+  - Engineering Principles: principles.md
   - CI/CD & Releases: ci-cd-releases.md
   - FAQ: faq.md

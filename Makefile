@@ -30,11 +30,11 @@ build-cuda13: ## Build minimal CUDA 13.4 runtime flavor (:cuda13)
 
 test: test-unit ## Run all offline test suites
 
-test-unit: ## Run all offline test suites (docs, dockerfile, workflows, skills, badges, compose)
-	pytest tests/test_docs_consistency.py tests/test_dockerfile.py tests/test_workflows.py tests/test_agent_skills.py tests/test_badges.py tests/test_compose.py -v --tb=short
+test-unit: ## Run all offline test suites (docs, dockerfile, workflows, skills, badges, compose, principles)
+	pytest tests/test_docs_consistency.py tests/test_dockerfile.py tests/test_workflows.py tests/test_agent_skills.py tests/test_badges.py tests/test_compose.py tests/test_principles.py -v --tb=short
 
 coverage: ## Run offline tests with code coverage report
-	pytest --cov=tests tests/test_docs_consistency.py tests/test_dockerfile.py tests/test_workflows.py tests/test_agent_skills.py tests/test_badges.py tests/test_compose.py
+	pytest --cov=tests tests/test_docs_consistency.py tests/test_dockerfile.py tests/test_workflows.py tests/test_agent_skills.py tests/test_badges.py tests/test_compose.py tests/test_principles.py
 
 test-docs: ## Run documentation and anchor consistency tests
 	pytest tests/test_docs_consistency.py -v --tb=short
