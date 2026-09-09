@@ -1,5 +1,6 @@
 # FileFlows Real Image workspace contract
 
+Follow authoritative engineering directives defined in `AGENTS.md`.
 Use `.vscode/` as the canonical shared workspace configuration.
 The container build system is Docker BuildKit / Dockerfile with multi-stage targets:
 use `docker build -t <tag> --build-arg FLAVOR=<flavor> .` or `make build`.

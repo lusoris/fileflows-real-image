@@ -3,7 +3,7 @@ IMAGE_NAME ?= ghcr.io/lusoris/fileflows-real-image
 TAG ?= latest
 
 .PHONY: help build build-all build-intel build-amd build-cuda build-cuda13 \
-        test test-docs test-image lint lint-hadolint lint-yaml lint-shell \
+        test test-unit test-docs test-image test-all coverage lint lint-hadolint lint-yaml lint-shell \
         docs-serve docs-build clean
 
 help: ## Show this help message
@@ -28,13 +28,21 @@ build-cuda: ## Build host-based NVIDIA flavor (:cuda)
 build-cuda13: ## Build minimal CUDA 13.4 runtime flavor (:cuda13)
 	docker build -t $(IMAGE_NAME):cuda13 --build-arg FLAVOR=cuda13 .
 
-test: test-docs ## Run all test suites
+test: test-unit ## Run all offline test suites
+
+test-unit: ## Run all offline test suites (docs, dockerfile, workflows, skills, badges, compose)
+	pytest tests/test_docs_consistency.py tests/test_dockerfile.py tests/test_workflows.py tests/test_agent_skills.py tests/test_badges.py tests/test_compose.py -v --tb=short
+
+coverage: ## Run offline tests with code coverage report
+	pytest --cov=tests tests/test_docs_consistency.py tests/test_dockerfile.py tests/test_workflows.py tests/test_agent_skills.py tests/test_badges.py tests/test_compose.py
 
 test-docs: ## Run documentation and anchor consistency tests
 	pytest tests/test_docs_consistency.py -v --tb=short
 
 test-image: ## Run full container assertion suite against local image
 	TEST_IMAGE=$(IMAGE_NAME):$(TAG) pytest tests/ -v --tb=short
+
+test-all: test-unit test-image ## Run offline unit tests followed by live container tests
 
 lint: lint-hadolint lint-yaml lint-shell ## Run all linters (Hadolint, Yamllint, ShellCheck)
 

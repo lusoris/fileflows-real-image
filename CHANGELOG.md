@@ -16,7 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Claude Code tool configurations, symlinked skills, and review subagents in `.claude/` (`container-reviewer`, `docs-reviewer`).
 - GitHub Copilot instructions in [.github/copilot-instructions.md](.github/copilot-instructions.md) and root [.cursorrules](.cursorrules).
 - Zed editor configuration and tasks in [.zed/](.zed/).
-- Automated linting and secret protection via [.pre-commit-config.yaml](.pre-commit-config.yaml), [.markdownlint.json](.markdownlint.json), [.codespellrc](.codespellrc), and [.gitleaks.toml](.gitleaks.toml).
+- Comprehensive automated test coverage expansion with 5 new offline test modules:
+  - `tests/test_dockerfile.py`: Static analysis, multi-stage topology, rootfs squashing, and invariant validation.
+  - `tests/test_workflows.py`: GitHub Actions YAML schema, Node 24 runtime enforcement, and flavor matrix validation.
+  - `tests/test_agent_skills.py`: Agent skills YAML frontmatter, Claude review subagents, and editor task verification.
+  - `tests/test_badges.py`: Shields.io dynamic endpoint schema and metric synchrony.
+  - `tests/test_compose.py`: Docker Compose service specification and hardware device pass-through validation.
+- Test coverage measurement tooling via `pytest-cov`, reaching **96.8%** offline unit test coverage with dedicated Makefile targets (`make test-unit`, `make coverage`, `make test-all`).
 - Developer convenience tooling: [Makefile](Makefile) and [pyproject.toml](pyproject.toml).
 - Curated zero-shareware VS Code workspace configuration in [.vscode/](.vscode/).
 

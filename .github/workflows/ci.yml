@@ -46,10 +46,10 @@ jobs:
           python -m pip install --upgrade pip yamllint
           yamllint -c .yamllint.yml .
 
-      - name: Verify Documentation Consistency & Integrity
+      - name: Run Offline Unit & Consistency Tests with Coverage
         run: |
           pip install -r tests/requirements-test.txt
-          pytest tests/test_docs_consistency.py -v --tb=short
+          make coverage
 
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@2.0.0
