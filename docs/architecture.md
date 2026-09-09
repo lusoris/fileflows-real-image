@@ -60,7 +60,7 @@ flowchart TD
 - Configures `/etc/apt/preferences.d/nosnap.pref` to prevent `snapd` installation.
 - Installs `aspnetcore-runtime-10.0` instead of the SDK.
 - Installs minimal runtime dynamic libraries (`libavcodec62`, `libavformat62`, `libswscale9`, `libvpl2`, `libicu78`, `libssl3`).
-- Pre-installs `intel-media-va-driver-non-free`, `i965-va-driver-shaders`, and `mesa-va-drivers`.
+- Pre-installs `intel-media-va-driver-non-free`, `libze-intel-gpu1`, `intel-opencl-icd`, and `mesa-va-drivers`.
 - Purges `git`, `nano`, `gnupg`, non-English locales, man pages, and info directories.
 - Strips SUID and SGID permissions (`chmod a-s`) across the entire root filesystem.
 - Completely deletes any pebble traces: `/usr/bin/pebble`, `/var/lib/pebble`.

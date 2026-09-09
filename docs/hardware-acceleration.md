@@ -8,11 +8,12 @@ FileFlows Real Image is engineered for seamless GPU transcoding out of the box. 
 
 Supported architectures: Intel Core 6th Gen (Skylake) through 14th+ Gen, Intel Arc Alchemist/Battlemage dGPUs, and Intel N-series processors (N100/N200/N305).
 
-### Pre-Installed Driver Stack
-- `intel-media-va-driver-non-free`: Modern Intel iHD driver (Gen9+ hardware).
-- `i965-va-driver-shaders`: Legacy Intel i965 driver for older CPUs.
-- `intel-opencl-icd`: OpenCL compute runtime for HDR tonemapping filters.
-- `libvpl2` & `libmfx-gen1.2`: Intel oneVPL and Media SDK runtimes for direct QSV pipelines.
+### Modern Unified Driver Stack (Xe, Xe2, & Gen8+)
+The image pre-bakes Intel's modern unified driver stack and purges obsolete legacy drivers (like `i965` for pre-2015 chips):
+- `intel-media-va-driver-non-free`: The official Intel Media Driver (iHD, v26.1.2+). It natively supports both the classic `i915` kernel driver and the modern Linux `xe` kernel DRM driver (`xe.ko`). It fully accelerates modern **Xe2 (Battlemage BMG, Lunar Lake)**, **Xe (Arc Alchemist DG2, Arrow Lake, Meteor Lake, Raptor Lake, Alder Lake, Tiger Lake)**, as well as older Gen 8/9/11 hardware.
+- `libze-intel-gpu1`: Intel oneAPI Level Zero GPU driver providing direct low-overhead hardware submission on modern Xe and Xe2 architectures.
+- `intel-opencl-icd`: Intel Compute Runtime for OpenCL-based HDR tonemapping and color grading filters.
+- `libvpl2` & `libmfx-gen1.2`: Intel oneVPL GPU runtime for direct QSV transcode pipelines.
 
 ### Compose Configuration
 Pass the Direct Rendering Infrastructure device `/dev/dri` to the container:
@@ -37,15 +38,16 @@ sudo usermod -aG video,render $USER
 
 ---
 
-## AMD Radeon & APU (Mesa VA-API)
+## AMD Radeon & Ryzen APU (Mesa VA-API)
 
-Supported architectures: AMD Ryzen APUs (Vega, RDNA2, RDNA3) and Radeon dedicated GPUs (RX 400 through RX 7000+ series).
+Supported architectures: AMD RDNA 2 (Radeon RX 6000), RDNA 3 / 3.5 (Radeon RX 7000, Ryzen 7000/8000/AI 300 APUs with dual AV1 encoders), and RDNA 4 (RX 8000+).
 
-### Pre-Installed Driver Stack
-- `mesa-va-drivers`: Official open-source Mesa Gallium driver providing hardware-accelerated H.264, HEVC, and AV1 encode/decode via VA-API.
+### Modern Driver Stack
+- `mesa-va-drivers`: Official open-source Mesa Gallium driver (`radeonsi_drv_video.so`) providing hardware-accelerated H.264, HEVC, and AV1 encode/decode via VA-API.
+- **Zero Legacy Baggage**: Deprecated APIs (VDPAU, UVD/VCE legacy wrappers) are completely omitted.
 
 ### Compose Configuration
-AMD hardware also exposes VA-API interfaces via `/dev/dri`:
+AMD hardware exposes VA-API interfaces via `/dev/dri`:
 
 ```yaml
 services:
@@ -59,7 +61,13 @@ services:
 
 ## NVIDIA GPU (NVENC & NVDEC)
 
-Supported architectures: Pascal (GTX 10xx), Turing (GTX 16xx / RTX 20xx), Ampere (RTX 30xx), Ada Lovelace (RTX 40xx), and Blackwell.
+Supported architectures: Turing (GTX 1660 / RTX 20xx), Ampere (RTX 30xx), Ada Lovelace (RTX 40xx with dual 8th-Gen NVENC AV1 engines), and Blackwell (RTX 50xx / B200 with 9th-Gen NVENC).
+
+### Zero In-Image Driver Bloat
+We intentionally do NOT install static `nvidia-driver-*` or bloated `cuda-toolkit` packages inside the image:
+- The container sets `NVIDIA_DRIVER_CAPABILITIES=compute,video,utility` and `NVIDIA_VISIBLE_DEVICES=all`.
+- At runtime, the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) dynamically mounts the host's active modern NVIDIA driver libraries (`libcuda.so`, `libnvcuvid.so`, `libnvidia-encode.so`) directly into the container.
+- This prevents host-container driver version mismatches, eliminates hundreds of megabytes of CUDA SDK bloat, and guarantees compatibility with the latest NVIDIA drivers.
 
 ### Prerequisites
 1. Host NVIDIA display drivers must be installed.

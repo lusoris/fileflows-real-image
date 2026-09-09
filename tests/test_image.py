@@ -88,11 +88,21 @@ class TestArchitecturalInvariants:
         )
 
     def test_vaapi_and_qsv_driver_stack(self):
-        """Invariant: Required hardware acceleration libraries must be installed."""
-        packages = ["i965-va-driver-shaders", "intel-opencl-icd", "libvpl2", "libmfx-gen1.2"]
+        """Invariant: Modern Intel Xe/Xe2/Gen8+ stack must be installed and legacy i965 purged."""
+        packages = [
+            "intel-media-va-driver-non-free",
+            "intel-opencl-icd",
+            "libvpl2",
+            "libmfx-gen1.2",
+            "libze-intel-gpu1",
+        ]
         for pkg in packages:
             res = run_in_container(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null")
             assert "install ok installed" in res.stdout, f"Driver package '{pkg}' missing from image."
+
+        # Legacy i965 driver (pre-2015 CPUs) is purged to eliminate bloat
+        res_i965 = run_in_container("dpkg-query -W -f='${Status}' i965-va-driver-shaders 2>/dev/null")
+        assert "install ok installed" not in res_i965.stdout, "Legacy i965 driver must not be installed."
 
     def test_dead_runtimes_stripped(self):
         """Invariant: Dead win* and osx* runtime folders stripped from /app."""

@@ -31,8 +31,8 @@ RUN printf 'Package: snapd\nPin: release *\nPin-Priority: -10\n' > /etc/apt/pref
         aspnetcore-runtime-10.0 && \
     if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
         apt-get install -y --no-install-recommends \
-            intel-media-va-driver-non-free i965-va-driver-shaders \
-            libvpl2 libmfx-gen1.2 intel-opencl-icd; \
+            intel-media-va-driver-non-free \
+            libvpl2 libmfx-gen1.2 intel-opencl-icd libze-intel-gpu1; \
     fi && \
     ln -s /usr/lib/dotnet /dotnet && \
     # Remove Canonical rockcraft pebble daemon and directories to eliminate Go stdlib CVEs
