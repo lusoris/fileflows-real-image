@@ -19,7 +19,8 @@ FROM ubuntu:26.04 AS base-builder
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Update system packages, apply security upgrades, and install runtime dependencies
-RUN apt-get update && \
+RUN printf 'Package: snapd\nPin: release *\nPin-Priority: -10\n' > /etc/apt/preferences.d/nosnap.pref && \
+    apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
         sudo tzdata wget ca-certificates curl tar xz-utils openssl locales \

@@ -47,6 +47,11 @@ class TestArchitecturalInvariants:
         res = run_in_container("find / -name pebble 2>/dev/null")
         assert not res.stdout.strip(), f"pebble files/directories found: {res.stdout.strip()}"
 
+    def test_no_snap_bloat(self):
+        """Invariant: Snap, snapd, and snap directories must be completely absent."""
+        res = run_in_container("which snap || which snapd || ls -d /snap /var/lib/snapd /var/cache/snapd 2>/dev/null || true")
+        assert not res.stdout.strip(), f"Snap artifacts found in image: {res.stdout.strip()}"
+
     def test_no_dotnet_sdk_bloat(self):
         """Invariant: No dotnet-sdk packages installed; only runtime."""
         dpkg_res = run_in_container("dpkg -l 'dotnet-sdk*'")
