@@ -3,7 +3,7 @@
 ### Summary
 <!-- What changed, why, and which issue it addresses. -->
 
-- 
+-
 
 ### Verification & Testing
 - [ ] Image builds cleanly without local dependencies: `docker build -t ghcr.io/lusoris/fileflows-real-image:latest .`

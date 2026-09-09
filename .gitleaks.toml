@@ -1,0 +1,13 @@
+title = "gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowed non-secret test and build hashes"
+paths = [
+  '''docs/.*''',
+  '''tests/.*''',
+  '''version\.txt''',
+  '''Dockerfile.*'''
+]

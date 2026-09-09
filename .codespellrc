@@ -1,0 +1,5 @@
+[codespell]
+skip = .git,.pytest_cache,build-docs,*.log,*.deb,*.tar,version.txt
+ignore-words-list = nd,fo,padd,iterm,re-use,re-uses,re-used,re-usable,te
+quiet-level = 3
+check-hidden = true

@@ -1,0 +1,21 @@
+---
+description: FileFlows Real Image architectural rules and coding standards
+globs: "*"
+alwaysApply: true
+---
+
+# FileFlows Real Image — Cursor Directives
+
+- **Architecture Invariants**:
+  - Base OS is Ubuntu 26.04 (Resolute) with zero base CVEs. Pebble daemon must remain purged.
+  - Never install `dotnet-sdk-*`. Always use `aspnetcore-runtime-10.0`.
+  - Never install `-dev` packages in production container stages.
+  - `:cuda` must remain host-based driver injection with zero container package bloat.
+  - `:cuda13` must install only `cuda-nvrtc-13-4`, `cuda-cudart-13-4`, `libnpp-13-4` (never cuBLAS, cuFFT, cuSOLVER).
+  - `:amd` must use Mesa Gallium VA-API + Vulkan RADV (never install ROCm).
+  - Keep `Dockerfile` and `Dockerfile.optimized` 100% byte-identical at all times.
+
+- **Verification**:
+  - Run `make test-docs` to ensure documentation consistency across README, docs, and Compose snippets.
+  - Run `make lint` to validate Dockerfile, YAML, and Shell scripts.
+  - All documentation and commit messages must be in English.

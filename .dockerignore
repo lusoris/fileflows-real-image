@@ -1,4 +1,16 @@
 .git
 .gitignore
-*.ps1
+.gitattributes
 *.md
+.vscode
+.idea
+.devcontainer
+.cursor
+.pytest_cache
+__pycache__
+tests
+build-docs
+site
+docs
+Makefile
+pyproject.toml

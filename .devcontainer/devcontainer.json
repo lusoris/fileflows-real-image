@@ -1,0 +1,28 @@
+{
+  "name": "FileFlows Real Image Development",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.13"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "exiasr.hadolint",
+        "redhat.vscode-yaml",
+        "timonwong.shellcheck",
+        "mads-hartmann.bash-ide-vscode",
+        "foxundermoon.shell-format",
+        "editorconfig.editorconfig",
+        "davidanson.vscode-markdownlint",
+        "github.vscode-github-actions",
+        "ms-python.python",
+        "bierner.markdown-mermaid"
+      ]
+    }
+  },
+  "postCreateCommand": "pip install -r tests/requirements-test.txt -r docs/requirements.txt"
+}

@@ -1,0 +1,11 @@
+# FileFlows Real Image workspace contract
+
+Use `.vscode/` as the canonical shared workspace configuration.
+The container build system is Docker BuildKit / Dockerfile with multi-stage targets:
+use `docker build -t <tag> --build-arg FLAVOR=<flavor> .` or `make build`.
+
+Preserve every existing agent integration, including Antigravity, Claude Code, Cursor,
+Codex, Copilot, and repository tooling. Never disable or suppress one through workspace settings.
+
+Always keep `Dockerfile` and `Dockerfile.optimized` in 100% lockstep.
+Run `make test-docs` and `make lint` before handoff and do not commit generated build output.

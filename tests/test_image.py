@@ -129,17 +129,20 @@ class TestArchitecturalInvariants:
     def test_vaapi_and_qsv_driver_stack(self):
         """Invariant: Hardware acceleration packages matching flavor must be installed."""
         flavor = get_image_flavor()
+        arch_res = run_in_container("dpkg --print-architecture")
+        arch = arch_res.stdout.strip()
         if flavor in ("all", "intel"):
-            packages = [
-                "intel-media-va-driver-non-free",
-                "intel-opencl-icd",
-                "libvpl2",
-                "libmfx-gen1.2",
-                "libze-intel-gpu1",
-            ]
-            for pkg in packages:
-                res = run_in_container(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null")
-                assert "install ok installed" in res.stdout, f"Driver package '{pkg}' missing from image."
+            if arch == "amd64":
+                packages = [
+                    "intel-media-va-driver-non-free",
+                    "intel-opencl-icd",
+                    "libvpl2",
+                    "libmfx-gen1.2",
+                    "libze-intel-gpu1",
+                ]
+                for pkg in packages:
+                    res = run_in_container(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null")
+                    assert "install ok installed" in res.stdout, f"Driver package '{pkg}' missing from image."
         elif flavor == "amd":
             packages = [
                 "mesa-libgallium",
@@ -149,6 +152,22 @@ class TestArchitecturalInvariants:
             for pkg in packages:
                 res = run_in_container(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null")
                 assert "install ok installed" in res.stdout, f"Driver package '{pkg}' missing from image."
+        elif flavor == "cuda13":
+            if arch == "amd64":
+                packages = [
+                    "cuda-nvrtc-13-4",
+                    "cuda-cudart-13-4",
+                    "libnpp-13-4",
+                ]
+                for pkg in packages:
+                    res = run_in_container(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null")
+                    assert "install ok installed" in res.stdout, f"Driver package '{pkg}' missing from image."
+        elif flavor == "cuda":
+            # Host-based CUDA: verify heavy math/solver packages are not bundled
+            bloated_pkgs = ["cuda-libraries-12-8", "cuda-libraries-13-4", "libcublas-12-8", "libcusolver-12-8"]
+            for pkg in bloated_pkgs:
+                res = run_in_container(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null")
+                assert "install ok installed" not in res.stdout, f"Bloated package '{pkg}' should not be installed in host-based CUDA flavor."
 
         # Legacy i965 driver (pre-2015 CPUs) is purged across all flavors
         res_i965 = run_in_container("dpkg-query -W -f='${Status}' i965-va-driver-shaders 2>/dev/null")
