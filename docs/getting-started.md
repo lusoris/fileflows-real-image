@@ -15,6 +15,12 @@ Save the following `docker-compose.yml` to your desired directory:
 ```yaml
 services:
   fileflows:
+    # Image Flavors:
+    #   ghcr.io/lusoris/fileflows-real-image:latest  - Universal default (Intel + AMD + NVIDIA runtimes)
+    #   ghcr.io/lusoris/fileflows-real-image:intel   - Intel QuickSync & Arc optimized (514MB)
+    #   ghcr.io/lusoris/fileflows-real-image:amd     - AMD Radeon & Ryzen APU optimized (473MB)
+    #   ghcr.io/lusoris/fileflows-real-image:cuda    - NVIDIA CUDA 12.8 runtime
+    #   ghcr.io/lusoris/fileflows-real-image:cuda13  - Cutting-edge NVIDIA CUDA 13.3+ runtime (RTX 30/40/50)
     image: ghcr.io/lusoris/fileflows-real-image:latest
     container_name: fileflows
     restart: unless-stopped
@@ -42,9 +48,9 @@ services:
       - SETUID
       - SETGID
       - DAC_OVERRIDE
-    # Optional Hardware Acceleration:
-    # devices:
-    #   - /dev/dri:/dev/dri
+      # Optional Hardware Acceleration:
+      # devices:
+      #   - /dev/dri:/dev/dri
 
 volumes:
   fileflows-data:
@@ -83,7 +89,7 @@ Check the startup logs:
 docker compose logs -f fileflows
 ```
 
-Because `intel-media-va-driver-non-free` is pre-baked, container startup takes less than **1 second** and will not run `apt-get` on boot.
+Because hardware drivers and runtimes are pre-baked at image build time across all flavors (`intel`, `amd`, `cuda`, `cuda13`, `latest`), container startup takes less than **1 second** and never triggers `apt-get` on boot. For GPU pass-through configurations, consult the **[Hardware Acceleration Guide](hardware-acceleration.md)**.
 
 ---
 

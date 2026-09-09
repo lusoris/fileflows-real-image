@@ -48,6 +48,12 @@ Run the container using [Docker Compose](docker-compose.yml):
 ```yaml
 services:
   fileflows:
+    # Image Flavors:
+    #   ghcr.io/lusoris/fileflows-real-image:latest  - Universal default (Intel + AMD + NVIDIA runtimes)
+    #   ghcr.io/lusoris/fileflows-real-image:intel   - Intel QuickSync & Arc optimized (514MB)
+    #   ghcr.io/lusoris/fileflows-real-image:amd     - AMD Radeon & Ryzen APU optimized (473MB)
+    #   ghcr.io/lusoris/fileflows-real-image:cuda    - NVIDIA CUDA 12.8 runtime
+    #   ghcr.io/lusoris/fileflows-real-image:cuda13  - Cutting-edge NVIDIA CUDA 13.3+ runtime (RTX 30/40/50)
     image: ghcr.io/lusoris/fileflows-real-image:latest
     container_name: fileflows
     restart: unless-stopped
@@ -74,18 +80,18 @@ services:
       - SETUID
       - SETGID
       - DAC_OVERRIDE
-    # Optional Hardware Acceleration:
-    # Intel / AMD VA-API / QSV:
-    # devices:
-    #   - /dev/dri:/dev/dri
-    # NVIDIA GPU:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
+      # Optional Hardware Acceleration:
+      # Intel / AMD VA-API / QSV:
+      # devices:
+      #   - /dev/dri:/dev/dri
+      # NVIDIA GPU:
+      # deploy:
+      #   resources:
+      #     reservations:
+      #       devices:
+      #         - driver: nvidia
+      #           count: all
+      #           capabilities: [gpu]
 
 volumes:
   fileflows-data:
@@ -99,6 +105,22 @@ docker compose up -d
 ```
 
 Access the web interface at `http://localhost:19200`.
+
+---
+
+## Image Flavors & Hardware Acceleration
+
+FileFlows Real Image is published in 5 specialized, vendor-optimized flavors:
+
+| Flavor Tag | Hardware Optimization | Content Size | Virtual Size | Included Stack |
+| :--- | :--- | :--- | :--- | :--- |
+| **`:intel`** | Intel Arc Alchemist/Battlemage, Core Gen 8–14+, N-series | **514 MB** | **1.76 GB** | Intel Media Driver (iHD 26.1+), Level Zero (`libze`), oneVPL, OpenCL ICD |
+| **`:amd`** | AMD Radeon RX 5000–8000 series, Ryzen 6000–9000 APUs | **473 MB** | **1.65 GB** | Mesa Gallium (`radeonsi`), RADV Vulkan, AMDGPU DRM |
+| **`:cuda`** | NVIDIA Pascal through Ada Lovelace (CUDA 12.8) | **2.22 GB** | **6.02 GB** | NVIDIA CUDA 12.8 runtime & compat libraries |
+| **`:cuda13`** | NVIDIA Ada Lovelace, Blackwell (RTX 50xx), Hopper (CUDA 13.3+) | **1.84 GB** | **5.03 GB** | NVIDIA CUDA 13.3+ runtime & compat libraries |
+| **`:latest`** | Universal default (Intel + AMD + NVIDIA hooks) | **574 MB** | **2.00 GB** | Full Intel Media Driver, Mesa Gallium VA-API, and NVIDIA host driver hooks |
+
+For complete setup guides, device mappings, and diagnostics, see the **[Hardware Acceleration Guide](docs/hardware-acceleration.md)**.
 
 ---
 

@@ -163,12 +163,13 @@ jobs:
           echo "image_tag_rev=$IMAGE_TAG_REV" >> $GITHUB_OUTPUT
           echo "image_tag_digest=$IMAGE_TAG_DIGEST" >> $GITHUB_OUTPUT
 
-      - name: Build and Push to GHCR (multi-platform)
+      - name: Build and Push Flavor 'all' (Universal Default)
         if: steps.check-upstream.outputs.should_build == 'true'
         uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
+          build-args: FLAVOR=all
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
@@ -177,10 +178,99 @@ jobs:
             ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.image_tag_rev }}
             ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.image_tag_digest }}
           labels: |
-            org.opencontainers.image.title=FileFlows Real Image
+            org.opencontainers.image.title=FileFlows Real Image (all)
             org.opencontainers.image.description=Hardened production image built from upstream revenz/fileflows
             org.opencontainers.image.version=${{ steps.version-extractor.outputs.release_tag }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.flavor=all
+            org.opencontainers.image.licenses=EUPL-1.2
+            org.opencontainers.image.upstream-digest=${{ steps.check-upstream.outputs.upstream_digest }}
+
+      - name: Build and Push Flavor 'intel' (Intel Arc / Xe / QuickSync)
+        if: steps.check-upstream.outputs.should_build == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: FLAVOR=intel
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:intel
+            ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.short_version }}-intel
+            ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.image_tag_rev }}-intel
+          labels: |
+            org.opencontainers.image.title=FileFlows Real Image (intel)
+            org.opencontainers.image.description=Intel QuickSync & Arc optimized image with zero AMD/NVIDIA bloat
+            org.opencontainers.image.version=${{ steps.version-extractor.outputs.release_tag }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.flavor=intel
+            org.opencontainers.image.licenses=EUPL-1.2
+            org.opencontainers.image.upstream-digest=${{ steps.check-upstream.outputs.upstream_digest }}
+
+      - name: Build and Push Flavor 'amd' (AMD Radeon / Mesa VAAPI / Vulkan)
+        if: steps.check-upstream.outputs.should_build == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: FLAVOR=amd
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:amd
+            ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.short_version }}-amd
+            ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.image_tag_rev }}-amd
+          labels: |
+            org.opencontainers.image.title=FileFlows Real Image (amd)
+            org.opencontainers.image.description=AMD Radeon VAAPI & Vulkan optimized image with zero Intel/NVIDIA bloat
+            org.opencontainers.image.version=${{ steps.version-extractor.outputs.release_tag }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.flavor=amd
+            org.opencontainers.image.licenses=EUPL-1.2
+            org.opencontainers.image.upstream-digest=${{ steps.check-upstream.outputs.upstream_digest }}
+
+      - name: Build and Push Flavor 'cuda' (NVIDIA CUDA 12.x Runtime)
+        if: steps.check-upstream.outputs.should_build == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: FLAVOR=cuda
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:cuda
+            ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.short_version }}-cuda
+            ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.image_tag_rev }}-cuda
+          labels: |
+            org.opencontainers.image.title=FileFlows Real Image (cuda)
+            org.opencontainers.image.description=NVIDIA CUDA 12 runtime optimized image for NVENC/NVDEC
+            org.opencontainers.image.version=${{ steps.version-extractor.outputs.release_tag }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.flavor=cuda
+            org.opencontainers.image.licenses=EUPL-1.2
+            org.opencontainers.image.upstream-digest=${{ steps.check-upstream.outputs.upstream_digest }}
+
+      - name: Build and Push Flavor 'cuda13' (Cutting-Edge NVIDIA CUDA 13.3+ Runtime)
+        if: steps.check-upstream.outputs.should_build == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: FLAVOR=cuda13
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:cuda13
+            ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.short_version }}-cuda13
+            ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.image_tag_rev }}-cuda13
+          labels: |
+            org.opencontainers.image.title=FileFlows Real Image (cuda13)
+            org.opencontainers.image.description=Cutting-edge NVIDIA CUDA 13.3+ runtime image for modern architectures
+            org.opencontainers.image.version=${{ steps.version-extractor.outputs.release_tag }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.flavor=cuda13
             org.opencontainers.image.licenses=EUPL-1.2
             org.opencontainers.image.upstream-digest=${{ steps.check-upstream.outputs.upstream_digest }}
 
@@ -202,14 +292,23 @@ jobs:
           - **Upstream Digest**: \`${{ steps.check-upstream.outputs.upstream_digest }}\` (\`${{ steps.version-extractor.outputs.short_digest }}\`)
           - **Repository Revision**: \`${{ steps.version-extractor.outputs.release_tag }}\`
           - **Base OS**: Ubuntu 26.04 (Resolute) with zero base CVEs
-          - **Layer Efficiency**: 100% (zero wasted layer overhead via rootfs squashing)
-          - **Supported Platforms**: \`linux/amd64\`, \`linux/arm64\`
+          - **Available Flavors**: \`all\` (default), \`intel\`, \`amd\`, \`cuda\` (CUDA 12), \`cuda13\` (CUDA 13.3+)
           - **License**: [EUPL-1.2](https://github.com/${{ github.repository }}/blob/main/LICENSE)
 
-          ### Pull Image
+          ### Pull Image Flavors
           \`\`\`bash
+          # Default Universal Image
           docker pull ghcr.io/${{ github.repository }}:latest
-          docker pull ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.short_version }}
-          docker pull ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.image_tag_rev }}
-          docker pull ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.image_tag_digest }}
+
+          # Intel Arc / QuickSync Dedicated Image (Zero AMD/NVIDIA bloat)
+          docker pull ghcr.io/${{ github.repository }}:intel
+
+          # AMD Radeon VAAPI / Vulkan Dedicated Image (Zero Intel/NVIDIA bloat)
+          docker pull ghcr.io/${{ github.repository }}:amd
+
+          # NVIDIA CUDA 12.x Dedicated Image
+          docker pull ghcr.io/${{ github.repository }}:cuda
+
+          # NVIDIA CUDA 13.3+ Cutting-Edge Dedicated Image (RTX 30/40/50, Blackwell, Ada)
+          docker pull ghcr.io/${{ github.repository }}:cuda13
           \`\`\`"

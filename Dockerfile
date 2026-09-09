@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
 ARG UPSTREAM_IMAGE=revenz/fileflows:latest
+ARG FLAVOR=all
 
 # ==============================================================================
 # Stage 1: Pull upstream image, prune Windows/macOS runtimes, and upgrade packages
@@ -129,13 +130,13 @@ print("Stage 1: Successfully upgraded Azure.Identity, Microsoft.Data.SqlClient, 
 EOF
 
 # ==============================================================================
-# Stage 2: Upgraded, secure Ubuntu 26.04 base environment
+# Stage 2: Common base environment (Ubuntu 26.04 + core libraries + .NET 10)
 # ==============================================================================
-FROM ubuntu:26.04 AS base-builder
+FROM ubuntu:26.04 AS base-common
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Update system packages, apply security upgrades, and install runtime dependencies
+# Update system packages, apply security upgrades, and install core runtime dependencies
 RUN printf 'Package: snapd\nPin: release *\nPin-Priority: -10\n' > /etc/apt/preferences.d/nosnap.pref && \
     apt-get update && \
     apt-get upgrade -y && \
@@ -143,14 +144,8 @@ RUN printf 'Package: snapd\nPin: release *\nPin-Priority: -10\n' > /etc/apt/pref
         sudo tzdata wget ca-certificates curl tar xz-utils openssl locales \
         libfontconfig1 libfreetype6 pciutils vainfo \
         libssl3 libicu78 libavformat62 libavcodec62 libswscale9 \
-        mesa-va-drivers \
         mkvtoolnix p7zip-full unrar \
         aspnetcore-runtime-10.0 && \
-    if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
-        apt-get install -y --no-install-recommends \
-            intel-media-va-driver-non-free \
-            libvpl2 libmfx-gen1.2 intel-opencl-icd libze-intel-gpu1; \
-    fi && \
     ln -s /usr/lib/dotnet /dotnet && \
     # Remove Canonical rockcraft pebble daemon and directories to eliminate Go stdlib CVEs
     rm -rf /usr/bin/pebble /var/lib/pebble /etc/pebble && \
@@ -164,26 +159,122 @@ RUN printf 'Package: snapd\nPin: release *\nPin-Priority: -10\n' > /etc/apt/pref
            /usr/share/man /usr/share/doc /usr/share/info /usr/share/lintian /usr/share/bug
 
 # ==============================================================================
-# Stage 3: Flatten rootfs to purge deleted layers (eliminates pebble from history)
+# Stage 2a: Flavor Intel (Intel Arc, Xe, Lunar Lake, Battlemage, QuickSync QSV)
 # ==============================================================================
-FROM scratch AS base-flat
-COPY --from=base-builder / /
+FROM base-common AS base-intel
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+        apt-get update && \
+        apt-get install -y --no-install-recommends \
+            intel-media-va-driver-non-free \
+            libvpl2 libmfx-gen1.2 intel-opencl-icd libze-intel-gpu1 && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/*; \
+    fi
 
 # ==============================================================================
-# Stage 4: Final optimized FileFlows application image
+# Stage 2b: Flavor AMD (AMD Radeon RX 5000/6000/7000/8000 series, APUs)
+# ==============================================================================
+FROM base-common AS base-amd
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        mesa-libgallium \
+        mesa-vulkan-drivers \
+        libdrm-amdgpu1 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/*
+
+# ==============================================================================
+# Stage 2c: Flavor CUDA (Standard NVIDIA CUDA 12.x / NVENC / NVDEC)
+# ==============================================================================
+FROM base-common AS base-cuda
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+        curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb -o /tmp/cuda-keyring.deb && \
+        dpkg -i /tmp/cuda-keyring.deb && \
+        rm -f /tmp/cuda-keyring.deb && \
+        apt-get update && \
+        apt-get install -y --no-install-recommends \
+            cuda-libraries-12-8 \
+            cuda-compat-12-8 && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/*; \
+    fi
+
+# ==============================================================================
+# Stage 2d: Flavor CUDA 13 (Cutting-Edge NVIDIA CUDA 13.3+ Runtime & Libraries)
+# ==============================================================================
+FROM base-common AS base-cuda13
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+        curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb -o /tmp/cuda-keyring.deb && \
+        dpkg -i /tmp/cuda-keyring.deb && \
+        rm -f /tmp/cuda-keyring.deb && \
+        apt-get update && \
+        apt-get install -y --no-install-recommends \
+            cuda-libraries-13-3 \
+            cuda-compat-13-3 && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/*; \
+    fi
+
+# ==============================================================================
+# Stage 2e: Flavor All (Universal Multi-Vendor Default Image)
+# ==============================================================================
+FROM base-common AS base-all
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends mesa-libgallium && \
+    if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+        apt-get install -y --no-install-recommends \
+            intel-media-va-driver-non-free \
+            libvpl2 libmfx-gen1.2 intel-opencl-icd libze-intel-gpu1; \
+    fi && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/*
+
+# ==============================================================================
+# Stage 3: Dynamic Flavor Selection
+# ==============================================================================
+ARG FLAVOR=all
+FROM base-${FLAVOR} AS base-selected
+
+# ==============================================================================
+# Stage 4: Flatten rootfs to purge deleted layers (eliminates pebble from history)
+# ==============================================================================
+FROM scratch AS base-flat
+COPY --from=base-selected / /
+
+# ==============================================================================
+# Stage 5: Final optimized FileFlows application image
 # ==============================================================================
 FROM base-flat
 
+ARG FLAVOR=all
+
 # OCI Standard Metadata Labels
-LABEL org.opencontainers.image.title="FileFlows Real Image" \
+LABEL org.opencontainers.image.title="FileFlows Real Image (${FLAVOR})" \
       org.opencontainers.image.description="Hardened, debloated, production-ready multi-stage image built from upstream revenz/fileflows" \
       org.opencontainers.image.url="https://github.com/lusoris/fileflows-real-image" \
       org.opencontainers.image.source="https://github.com/lusoris/fileflows-real-image" \
       org.opencontainers.image.licenses="EUPL-1.2" \
+      org.opencontainers.image.flavor="${FLAVOR}" \
       org.opencontainers.image.vendor="lusoris"
 
 # Environment variables matching FileFlows configuration & container performance optimizations
-ENV PATH=/dotnet:/dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+ENV PATH=/usr/local/cuda-13.3/bin:/usr/local/cuda-12.8/bin:/usr/local/cuda/bin:/dotnet:/dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    LD_LIBRARY_PATH=/usr/local/cuda-13.3/lib64:/usr/local/cuda-13.3/compat:/usr/local/cuda-12.8/lib64:/usr/local/cuda-12.8/compat:/usr/local/cuda/lib64 \
     DOTNET_ROOT=/dotnet \
     NVIDIA_DRIVER_CAPABILITIES=compute,video,utility \
     NVIDIA_VISIBLE_DEVICES=all \
@@ -201,8 +292,9 @@ COPY --from=upstream /usr/local/bin/dovi_tool /usr/local/bin/dovi_tool
 # Copy pruned application directory directly from upstream stage
 COPY --from=upstream /app /app
 
-# Ensure execution permissions on binaries and entrypoint
-RUN chmod +x /usr/local/bin/docker /usr/local/bin/dovi_tool /app/docker-entrypoint.sh
+# Ensure execution permissions on binaries and entrypoint, and neutralize runtime apt-get invocations
+RUN chmod +x /usr/local/bin/docker /usr/local/bin/dovi_tool /app/docker-entrypoint.sh && \
+    sed -i 's/apt-get update && apt-get install -y intel-media-va-driver-non-free/echo "Hardware acceleration pre-configured by FileFlows Real Image."/' /app/docker-entrypoint.sh
 
 # Expose web UI port
 EXPOSE 5000/tcp

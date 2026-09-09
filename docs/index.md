@@ -60,7 +60,7 @@ flowchart LR
 
 1. **Zero Base Vulnerabilities**: Drops the unneeded Canonical rockcraft `pebble` service daemon and its associated Go runtime CVEs via rootfs squashing.
 2. **Instant Container Startup**: Pre-installs `intel-media-va-driver-non-free` at build time so the entrypoint never performs network `apt-get` downloads on container launch.
-3. **Hardware Acceleration Out of the Box**: Full, tested GPU acceleration for Intel QuickSync (VA-API / QSV), AMD Mesa VA-API, and NVIDIA GPUs.
+3. **Vendor-Optimized Image Flavors**: Available in 5 specialized flavors: `:intel` (Intel Arc & QuickSync, 514MB), `:amd` (AMD Radeon RDNA & Ryzen APUs, 473MB), `:cuda` (NVIDIA CUDA 12.8), `:cuda13` (NVIDIA CUDA 13.3+ for Ada Lovelace & Blackwell), and `:latest` (Universal multi-vendor default).
 4. **Hardened Security Profiles**: Compatible with `cap_drop: [ALL]`, `no-new-privileges: true`, and custom `PUID`/`PGID`.
 5. **Zombie Process Reaping**: Built-in container `HEALTHCHECK` and recommendations for `init: true` to prevent orphan ffmpeg/transcoder zombie processes.
 6. **Automated 24-Hour Security Builds**: Nightly CI rebuilding ensures base Ubuntu 26.04 packages always receive upstream security patches automatically.

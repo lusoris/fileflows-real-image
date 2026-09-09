@@ -2,6 +2,7 @@
 /app/
 /docker-bin/
 /tools/
+/scratch/
 *.tar
 *.log
 .DS_Store

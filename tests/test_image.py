@@ -18,7 +18,7 @@ import time
 import urllib.request
 import pytest
 
-IMAGE_NAME = os.environ.get("TEST_IMAGE", "ghcr.io/lusoris/fileflows-real-image:latest")
+IMAGE_NAME = os.environ.get("TEST_IMAGE", "ghcr.io/lusoris/fileflows-real-image:latest").strip()
 
 
 def run_in_container(cmd: str) -> subprocess.CompletedProcess:
@@ -30,6 +30,20 @@ def run_in_container(cmd: str) -> subprocess.CompletedProcess:
         text=True,
         check=False,
     )
+
+
+def get_image_flavor() -> str:
+    """Detect image flavor from tag or image label."""
+    img = IMAGE_NAME.lower()
+    if ":intel" in img:
+        return "intel"
+    if ":amd" in img:
+        return "amd"
+    if ":cuda13" in img:
+        return "cuda13"
+    if ":cuda" in img:
+        return "cuda"
+    return "all"
 
 
 class TestArchitecturalInvariants:
@@ -81,26 +95,54 @@ class TestArchitecturalInvariants:
         assert len(installed_dev) == 0, f"Unexpected -dev packages installed: {installed_dev}"
 
     def test_instant_startup_driver_preinstalled(self):
-        """Invariant: intel-media-va-driver-non-free pre-installed to prevent boot-time apt-get."""
-        res = run_in_container("dpkg-query -W -f='${Status}' intel-media-va-driver-non-free 2>/dev/null")
-        assert "install ok installed" in res.stdout, (
-            f"intel-media-va-driver-non-free not installed: {res.stdout}"
-        )
+        """Invariant: Hardware acceleration stack pre-installed based on image flavor."""
+        flavor = get_image_flavor()
+        if flavor in ("all", "intel"):
+            res = run_in_container("dpkg-query -W -f='${Status}' intel-media-va-driver-non-free 2>/dev/null")
+            assert "install ok installed" in res.stdout, (
+                f"intel-media-va-driver-non-free not installed: {res.stdout}"
+            )
+        elif flavor == "amd":
+            res = run_in_container("dpkg-query -W -f='${Status}' mesa-libgallium 2>/dev/null")
+            assert "install ok installed" in res.stdout, (
+                f"mesa-libgallium not installed: {res.stdout}"
+            )
+        elif flavor == "cuda":
+            res = run_in_container("dpkg-query -W -f='${Status}' cuda-libraries-12-8 2>/dev/null")
+            assert "install ok installed" in res.stdout, (
+                f"cuda-libraries-12-8 not installed: {res.stdout}"
+            )
+        elif flavor == "cuda13":
+            res = run_in_container("dpkg-query -W -f='${Status}' cuda-libraries-13-3 2>/dev/null")
+            assert "install ok installed" in res.stdout, (
+                f"cuda-libraries-13-3 not installed: {res.stdout}"
+            )
 
     def test_vaapi_and_qsv_driver_stack(self):
-        """Invariant: Modern Intel Xe/Xe2/Gen8+ stack must be installed and legacy i965 purged."""
-        packages = [
-            "intel-media-va-driver-non-free",
-            "intel-opencl-icd",
-            "libvpl2",
-            "libmfx-gen1.2",
-            "libze-intel-gpu1",
-        ]
-        for pkg in packages:
-            res = run_in_container(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null")
-            assert "install ok installed" in res.stdout, f"Driver package '{pkg}' missing from image."
+        """Invariant: Hardware acceleration packages matching flavor must be installed."""
+        flavor = get_image_flavor()
+        if flavor in ("all", "intel"):
+            packages = [
+                "intel-media-va-driver-non-free",
+                "intel-opencl-icd",
+                "libvpl2",
+                "libmfx-gen1.2",
+                "libze-intel-gpu1",
+            ]
+            for pkg in packages:
+                res = run_in_container(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null")
+                assert "install ok installed" in res.stdout, f"Driver package '{pkg}' missing from image."
+        elif flavor == "amd":
+            packages = [
+                "mesa-libgallium",
+                "mesa-vulkan-drivers",
+                "libdrm-amdgpu1",
+            ]
+            for pkg in packages:
+                res = run_in_container(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null")
+                assert "install ok installed" in res.stdout, f"Driver package '{pkg}' missing from image."
 
-        # Legacy i965 driver (pre-2015 CPUs) is purged to eliminate bloat
+        # Legacy i965 driver (pre-2015 CPUs) is purged across all flavors
         res_i965 = run_in_container("dpkg-query -W -f='${Status}' i965-va-driver-shaders 2>/dev/null")
         assert "install ok installed" not in res_i965.stdout, "Legacy i965 driver must not be installed."
 
@@ -128,7 +170,9 @@ class TestImageMetricsAndFootprint:
     """Tests asserting image size constraints and metadata."""
 
     def test_virtual_disk_size_limit(self):
-        """Assert image virtual disk size is under 2.5 GB (down from 3.57 GB upstream)."""
+        """Assert image virtual disk size meets gate threshold per flavor."""
+        flavor = get_image_flavor()
+        max_size = 7.0 if "cuda" in flavor else 2.5
         res = subprocess.run(
             ["docker", "image", "inspect", IMAGE_NAME, "--format", "{{.Size}}"],
             stdout=subprocess.PIPE,
@@ -137,7 +181,7 @@ class TestImageMetricsAndFootprint:
         )
         size_bytes = int(res.stdout.strip())
         size_gb = size_bytes / (1024**3)
-        assert size_gb <= 2.5, f"Virtual size {size_gb:.2f} GB exceeds 2.5 GB gate threshold."
+        assert size_gb <= max_size, f"Virtual size {size_gb:.2f} GB exceeds {max_size} GB gate threshold."
 
     def test_environment_variables_configured(self):
         """Assert essential environment variables and .NET container performance flags are baked in."""
@@ -223,7 +267,7 @@ class TestRuntimeSmokeAndWebUI:
                     stderr=subprocess.PIPE,
                     text=True,
                 )
-                if "intel-media-va-driver-non-free already installed." in logs_res.stdout:
+                if "already installed." in logs_res.stdout or "Hardware acceleration pre-configured" in logs_res.stdout:
                     entrypoint_checked = True
                     assert "apt-get update" not in logs_res.stdout, (
                         "Container unexpectedly ran apt-get update on boot!"
@@ -240,7 +284,7 @@ class TestRuntimeSmokeAndWebUI:
                 continue
 
         # Check entrypoint logs assertion
-        assert entrypoint_checked, "Entrypoint failed to log 'already installed' message."
+        assert entrypoint_checked, "Entrypoint failed to verify pre-configured hardware drivers."
 
         # Check HTTP response assertion
         assert web_ok, f"Web UI did not return HTTP 200 within timeout on {url}"

@@ -1,85 +1,102 @@
-# Hardware Acceleration
+# Hardware Acceleration & Image Flavors
 
-FileFlows Real Image is engineered for seamless GPU transcoding out of the box. All essential driver stacks, runtimes, and libraries are pre-baked into the image at build time.
+FileFlows Real Image provides specialized, vendor-optimized container image flavors engineered for high-performance GPU transcoding. Each flavor pre-bakes the vendor-specific runtime and driver stack at build time, eliminating runtime package installations (`apt-get`) and stripping out unneeded driver bloat from competing vendors.
 
 ---
 
-## Intel QuickSync Video (QSV & VA-API)
+## Image Flavors Overview
 
-Supported architectures: Intel Core 6th Gen (Skylake) through 14th+ Gen, Intel Arc Alchemist/Battlemage dGPUs, and Intel N-series processors (N100/N200/N305).
+| Flavor Tag | Target Hardware / Architecture | Content Size | Virtual Size | Driver Stack Included |
+| :--- | :--- | :--- | :--- | :--- |
+| **`:intel`** | Intel Core Gen 8–14+, Arc Alchemist, Battlemage, N-series | **514 MB** | **1.76 GB** | Intel Media Driver (iHD 26.1+), Level Zero (`libze`), oneVPL, OpenCL ICD |
+| **`:amd`** | AMD Radeon RX 5000–8000 series, Ryzen 6000–9000 APUs | **473 MB** | **1.65 GB** | Mesa Gallium (`radeonsi`), RADV Vulkan, AMDGPU DRM |
+| **`:cuda`** | NVIDIA Pascal through Ada Lovelace (CUDA 12.8) | **2.22 GB** | **6.02 GB** | NVIDIA CUDA 12.8 runtime & compat libraries |
+| **`:cuda13`** | NVIDIA Ada Lovelace, Blackwell (RTX 50xx), Hopper (CUDA 13.3+) | **1.84 GB** | **5.03 GB** | NVIDIA CUDA 13.3+ runtime & compat libraries |
+| **`:latest`** / **`:all`** | Universal multi-vendor default (Intel + AMD + NVIDIA runtimes) | **574 MB** | **2.00 GB** | Full Intel Media Driver, Mesa Gallium VA-API, and NVIDIA host driver hooks |
 
-### Modern Unified Driver Stack (Xe, Xe2, & Gen8+)
-The image pre-bakes Intel's modern unified driver stack and purges obsolete legacy drivers (like `i965` for pre-2015 chips):
-- `intel-media-va-driver-non-free`: The official Intel Media Driver (iHD, v26.1.2+). It natively supports both the classic `i915` kernel driver and the modern Linux `xe` kernel DRM driver (`xe.ko`). It fully accelerates modern **Xe2 (Battlemage BMG, Lunar Lake)**, **Xe (Arc Alchemist DG2, Arrow Lake, Meteor Lake, Raptor Lake, Alder Lake, Tiger Lake)**, as well as older Gen 8/9/11 hardware.
-- `libze-intel-gpu1`: Intel oneAPI Level Zero GPU driver providing direct low-overhead hardware submission on modern Xe and Xe2 architectures.
-- `intel-opencl-icd`: Intel Compute Runtime for OpenCL-based HDR tonemapping and color grading filters.
-- `libvpl2` & `libmfx-gen1.2`: Intel oneVPL GPU runtime for direct QSV transcode pipelines.
+---
 
-### Compose Configuration
-Pass the Direct Rendering Infrastructure device `/dev/dri` to the container:
+## 1. Intel QuickSync & Arc GPUs (`:intel`)
+
+### Supported Hardware
+- **Integrated Graphics**: Intel Core 8th Gen (Coffee Lake) through 14th Gen (Raptor Lake Refresh), Intel Core Ultra (Meteor Lake, Arrow Lake, Lunar Lake), and Intel N-series (N100, N200, N305).
+- **Discrete GPUs**: Intel Arc Alchemist (A310, A380, A750, A770) and Intel Arc Battlemage (B570, B580).
+
+### Pre-Baked Driver Stack
+The `:intel` flavor is built specifically for Intel hardware with zero AMD or NVIDIA dependencies:
+- **`intel-media-va-driver-non-free` (v26.1.2+)**: Intel Media Driver (iHD) with native dual support for both `i915` and modern Linux `xe` kernel DRM drivers (`xe.ko`). Accelerates AV1, HEVC 10-bit, and H.264 encode/decode.
+- **`libze-intel-gpu1`**: Intel oneAPI Level Zero GPU driver for modern Xe and Xe2 architectures.
+- **`intel-opencl-icd`**: Intel Compute Runtime for hardware-accelerated OpenCL HDR tone mapping (HDR10 to SDR) and color grading filters.
+- **`libvpl2` & `libmfx-gen1.2`**: Intel oneVPL runtime for direct QSV transcode pipelines.
+- **Zero Legacy Baggage**: Deprecated drivers (such as `i965` for pre-2015 CPUs) are purged.
+
+### Compose Configuration (`:intel`)
 
 ```yaml
 services:
   fileflows:
-    image: ghcr.io/lusoris/fileflows-real-image:latest
+    image: ghcr.io/lusoris/fileflows-real-image:intel
+    container_name: fileflows
+    restart: unless-stopped
     devices:
       - /dev/dri:/dev/dri
     environment:
       - PUID=1000
       - PGID=1000
-```
-
-### Host Permissions
-Ensure the user running the container belongs to the `video` and `render` groups on the host:
-
-```bash
-sudo usermod -aG video,render $USER
+      - TZ=UTC
 ```
 
 ---
 
-## AMD Radeon & Ryzen APU (Mesa VA-API)
+## 2. AMD Radeon & Ryzen APUs (`:amd`)
 
-Supported architectures: AMD RDNA 2 (Radeon RX 6000), RDNA 3 / 3.5 (Radeon RX 7000, Ryzen 7000/8000/AI 300 APUs with dual AV1 encoders), and RDNA 4 (RX 8000+).
+### Supported Hardware
+- **Radeon Discrete GPUs**: RDNA 1 (RX 5000), RDNA 2 (RX 6000), RDNA 3 / 3.5 (RX 7000), and RDNA 4 (RX 8000+).
+- **Ryzen APUs**: Ryzen 4000/5000 (Vega), Ryzen 6000/7000/8000/AI 300 APUs with dual hardware AV1 engines.
 
-### Modern Driver Stack
-- `mesa-va-drivers`: Official open-source Mesa Gallium driver (`radeonsi_drv_video.so`) providing hardware-accelerated H.264, HEVC, and AV1 encode/decode via VA-API.
-- **Zero Legacy Baggage**: Deprecated APIs (VDPAU, UVD/VCE legacy wrappers) are completely omitted.
+### Pre-Baked Driver Stack
+The `:amd` flavor slashes image content size down to **473 MB** (-53% vs upstream):
+- **`mesa-libgallium`**: Official Mesa 26.0+ Gallium driver providing `/usr/lib/x86_64-linux-gnu/dri/radeonsi_drv_video.so` for hardware-accelerated VA-API H.264, HEVC, and AV1 encode/decode.
+- **`mesa-vulkan-drivers` (RADV)**: High-performance AMD Vulkan driver for Vulkan-based video filters and compute.
+- **`libdrm-amdgpu1`**: Direct AMDGPU kernel DRM interface.
+- **Zero Intel/NVIDIA Bloat**: Omits all Intel Media Drivers and NVIDIA CUDA toolkits.
 
-### Compose Configuration
-AMD hardware exposes VA-API interfaces via `/dev/dri`:
+### Compose Configuration (`:amd`)
 
 ```yaml
 services:
   fileflows:
-    image: ghcr.io/lusoris/fileflows-real-image:latest
+    image: ghcr.io/lusoris/fileflows-real-image:amd
+    container_name: fileflows
+    restart: unless-stopped
     devices:
       - /dev/dri:/dev/dri
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
 ```
 
 ---
 
-## NVIDIA GPU (NVENC & NVDEC)
+## 3. NVIDIA CUDA 12 (`:cuda`)
 
-Supported architectures: Turing (GTX 1660 / RTX 20xx), Ampere (RTX 30xx), Ada Lovelace (RTX 40xx with dual 8th-Gen NVENC AV1 engines), and Blackwell (RTX 50xx / B200 with 9th-Gen NVENC).
+### Supported Hardware
+- NVIDIA Pascal (GTX 10xx), Turing (GTX 1660, RTX 20xx), Ampere (RTX 30xx), and Ada Lovelace (RTX 40xx).
 
-### Zero In-Image Driver Bloat
-We intentionally do NOT install static `nvidia-driver-*` or bloated `cuda-toolkit` packages inside the image:
-- The container sets `NVIDIA_DRIVER_CAPABILITIES=compute,video,utility` and `NVIDIA_VISIBLE_DEVICES=all`.
-- At runtime, the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) dynamically mounts the host's active modern NVIDIA driver libraries (`libcuda.so`, `libnvcuvid.so`, `libnvidia-encode.so`) directly into the container.
-- This prevents host-container driver version mismatches, eliminates hundreds of megabytes of CUDA SDK bloat, and guarantees compatibility with the latest NVIDIA drivers.
+### Pre-Baked Driver Stack
+- **`cuda-libraries-12-8` & `cuda-compat-12-8`**: Pre-bakes official NVIDIA CUDA 12.8 runtime libraries and compatibility shims.
+- Configured with `NVIDIA_DRIVER_CAPABILITIES=compute,video,utility` and `NVIDIA_VISIBLE_DEVICES=all`.
+- Works seamlessly with the host's [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 
-### Prerequisites
-1. Host NVIDIA display drivers must be installed.
-2. The [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) must be installed and configured on the host.
-
-### Compose Configuration
-Configure the GPU reservation block:
+### Compose Configuration (`:cuda`)
 
 ```yaml
 services:
   fileflows:
-    image: ghcr.io/lusoris/fileflows-real-image:latest
+    image: ghcr.io/lusoris/fileflows-real-image:cuda
+    container_name: fileflows
+    restart: unless-stopped
     deploy:
       resources:
         reservations:
@@ -87,52 +104,90 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
 ```
 
-Or when running via Docker CLI:
+---
 
-```bash
-docker run --gpus all ... ghcr.io/lusoris/fileflows-real-image:latest
+## 4. Cutting-Edge NVIDIA CUDA 13 (`:cuda13`)
+
+### Supported Hardware
+- **Ada Lovelace** (RTX 4070, 4080, 4090 with dual 8th-Gen NVENC AV1 encoders).
+- **Blackwell** (RTX 5070, 5080, 5090, B100, B200 with 9th-Gen NVENC).
+- **Hopper** (H100, H200) and Ampere (RTX 30xx).
+
+### Why CUDA 13.3+?
+CUDA 13.3 introduces optimized compute kernels and modern hardware acceleration pipelines tailored for next-generation architectures. The `:cuda13` image includes:
+- Official `cuda-libraries-13-3` and `cuda-compat-13-3` packages.
+- Zero developer headers (`-dev`) or bloated SDK packages.
+- Dedicated `LD_LIBRARY_PATH` and `PATH` configurations ensuring priority loading for CUDA 13 libraries while falling back gracefully.
+
+### Compose Configuration (`:cuda13`)
+
+```yaml
+services:
+  fileflows:
+    image: ghcr.io/lusoris/fileflows-real-image:cuda13
+    container_name: fileflows
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
 ```
+
+---
+
+## 5. Universal Default Image (`:latest`)
+
+If you operate a mixed cluster with both Intel and AMD nodes, or prefer a single image that adapts to whatever GPU is available, use `ghcr.io/lusoris/fileflows-real-image:latest`. It pre-bakes the full Intel QuickSync stack, Mesa Gallium VA-API for AMD, and environment hooks for NVIDIA Container Toolkit, all within a compact 574 MB content footprint.
 
 ---
 
 ## Verification & Diagnostics
 
-To confirm your GPU is recognized inside the container:
-
-### Intel / AMD VA-API Verification
-Run `vainfo` inside the running container:
+### VA-API (Intel / AMD)
+Verify that your GPU encoder is accessible inside the container by running `vainfo`:
 
 ```bash
 docker exec -it fileflows vainfo
 ```
 
-You should see an output listing supported entrypoints, such as:
+Sample output confirming AV1, HEVC, and H.264 hardware encoding:
 ```text
-VAProfileH264Main : VAEntrypointEncSlice
-VAProfileHEVCMain : VAEntrypointEncSlice
+VAProfileH264Main    : VAEntrypointEncSlice
+VAProfileHEVCMain    : VAEntrypointEncSlice
 VAProfileAV1Profile0 : VAEntrypointEncSlice
 ```
 
-### NVIDIA Verification
-Run `nvidia-smi` inside the running container:
+### NVIDIA (NVENC / NVDEC)
+Verify that your NVIDIA GPU is recognized by running `nvidia-smi`:
 
 ```bash
 docker exec -it fileflows nvidia-smi
 ```
 
-### Troubleshooting Permission Denied on `/dev/dri/renderD128`
-If FileFlows fails to initialize the hardware encoder:
-1. Check device permissions on the host:
+### Troubleshooting `/dev/dri/renderD128` Permissions
+If FileFlows cannot access the GPU device:
+1. Verify device permissions on the host:
    ```bash
    ls -la /dev/dri
    ```
-2. Note the GID of the `render` group (commonly `107` or `993` on Ubuntu/Debian).
-3. If necessary, pass the group ID via `group_add` in `docker-compose.yml`:
+2. Identify the host group ID for `render` (typically `107` or `993` on Ubuntu/Debian).
+3. If necessary, add the host group ID via `group_add` in `docker-compose.yml`:
    ```yaml
    services:
      fileflows:
        group_add:
-         - "993" # Host render group ID
+         - "993"
    ```
