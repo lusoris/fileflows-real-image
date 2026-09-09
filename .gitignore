@@ -14,7 +14,11 @@ Thumbs.db
 !.env.example
 
 # IDE and local configuration
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+!.vscode/launch.json
 .idea/
 *.swp
 *~

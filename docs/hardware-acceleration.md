@@ -10,8 +10,8 @@ FileFlows Real Image provides specialized, vendor-optimized container image flav
 | :--- | :--- | :--- | :--- | :--- |
 | **`:intel`** | Intel Core Gen 8–14+, Arc Alchemist, Battlemage, N-series | **514 MB** | **1.76 GB** | Intel Media Driver (iHD 26.1+), Level Zero (`libze`), oneVPL, OpenCL ICD |
 | **`:amd`** | AMD Radeon RX 5000–8000 series, Ryzen 6000–9000 APUs | **473 MB** | **1.65 GB** | Mesa Gallium (`radeonsi`), RADV Vulkan, AMDGPU DRM |
-| **`:cuda`** | NVIDIA Pascal through Ada Lovelace (CUDA 12.8) | **2.22 GB** | **6.02 GB** | NVIDIA CUDA 12.8 runtime & compat libraries |
-| **`:cuda13`** | NVIDIA Ada Lovelace, Blackwell (RTX 50xx), Hopper (CUDA 13.3+) | **1.84 GB** | **5.03 GB** | NVIDIA CUDA 13.3+ runtime & compat libraries |
+| **`:cuda`** | NVIDIA Pascal through Ada Lovelace (Host-Based CUDA) | **473 MB** | **1.65 GB** | Host-injected driver hooks (`libcuda`, NVENC, NVDEC) with zero package bloat |
+| **`:cuda13`** | NVIDIA Ada Lovelace, Blackwell (RTX 50xx), Hopper (CUDA 13.4) | **720 MB** | **2.33 GB** | Minimal NVIDIA CUDA 13.4 runtime + NVRTC & NPP video filters |
 | **`:latest`** / **`:all`** | Universal multi-vendor default (Intel + AMD + NVIDIA runtimes) | **574 MB** | **2.00 GB** | Full Intel Media Driver, Mesa Gallium VA-API, and NVIDIA host driver hooks |
 
 ---
@@ -79,15 +79,16 @@ services:
 
 ---
 
-## 3. NVIDIA CUDA 12 (`:cuda`)
+## 3. Host-Based NVIDIA CUDA (`:cuda`)
 
 ### Supported Hardware
 - NVIDIA Pascal (GTX 10xx), Turing (GTX 1660, RTX 20xx), Ampere (RTX 30xx), and Ada Lovelace (RTX 40xx).
 
-### Pre-Baked Driver Stack
-- **`cuda-libraries-12-8` & `cuda-compat-12-8`**: Pre-bakes official NVIDIA CUDA 12.8 runtime libraries and compatibility shims.
+### Architecture & Driver Stack
+The `:cuda` flavor delivers maximum efficiency by stripping out all in-container package bloat (such as unneeded cuBLAS and cuFFT AI libraries) and relying directly on host driver injection:
+- Uses the official [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) to dynamically bind-mount `libcuda.so.1`, `libnvidia-encode.so.1` (NVENC), and `libnvcuvid.so.1` (NVDEC) at container startup.
 - Configured with `NVIDIA_DRIVER_CAPABILITIES=compute,video,utility` and `NVIDIA_VISIBLE_DEVICES=all`.
-- Works seamlessly with the host's [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+- Drops image content size down to **473 MB** and virtual disk size to **1.65 GB** (slashing over 4.3 GB of wasted bloat).
 
 ### Compose Configuration (`:cuda`)
 
@@ -112,18 +113,19 @@ services:
 
 ---
 
-## 4. Cutting-Edge NVIDIA CUDA 13 (`:cuda13`)
+## 4. Minimal Cutting-Edge NVIDIA CUDA 13.4 (`:cuda13`)
 
 ### Supported Hardware
 - **Ada Lovelace** (RTX 4070, 4080, 4090 with dual 8th-Gen NVENC AV1 encoders).
 - **Blackwell** (RTX 5070, 5080, 5090, B100, B200 with 9th-Gen NVENC).
 - **Hopper** (H100, H200) and Ampere (RTX 30xx).
 
-### Why CUDA 13.3+?
-CUDA 13.3 introduces optimized compute kernels and modern hardware acceleration pipelines tailored for next-generation architectures. The `:cuda13` image includes:
-- Official `cuda-libraries-13-3` and `cuda-compat-13-3` packages.
-- Zero developer headers (`-dev`) or bloated SDK packages.
-- Dedicated `LD_LIBRARY_PATH` and `PATH` configurations ensuring priority loading for CUDA 13 libraries while falling back gracefully.
+### Why CUDA 13.4 Minimal?
+CUDA 13.4 introduces optimized compute kernels and modern hardware acceleration pipelines tailored for next-generation architectures like Blackwell (RTX 50xx). The `:cuda13` image is engineered strictly with the video transcode runtime essentials:
+- **`cuda-nvrtc-13-4`**: NVIDIA Runtime Compilation library required for dynamic FFmpeg CUDA filter compilation (`scale_cuda`, `yadif_cuda`, `overlay_cuda`, etc.).
+- **`cuda-cudart-13-4`**: Core CUDA 13.4 runtime API library.
+- **`libnpp-13-4`**: NVIDIA Performance Primitives for NPP-based video filtering and color processing (`scale_npp`).
+- **Zero AI Math Bloat**: Excludes `libcublas` (-850 MB), `libcusolver` (-390 MB), `libcusparse` (-380 MB), `libcufft` (-273 MB), and `cuda-compat` (-200 MB), slashing over 2.7 GB of unneeded libraries while retaining 100% video transcoding filter support.
 
 ### Compose Configuration (`:cuda13`)
 

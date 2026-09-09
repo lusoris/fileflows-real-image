@@ -1,0 +1,92 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Docker: Build (Flavor: all)",
+      "type": "shell",
+      "command": "docker build -t ghcr.io/lusoris/fileflows-real-image:latest --build-arg FLAVOR=all .",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Build (Flavor: intel)",
+      "type": "shell",
+      "command": "docker build -t ghcr.io/lusoris/fileflows-real-image:intel --build-arg FLAVOR=intel .",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Build (Flavor: amd)",
+      "type": "shell",
+      "command": "docker build -t ghcr.io/lusoris/fileflows-real-image:amd --build-arg FLAVOR=amd .",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Build (Flavor: cuda)",
+      "type": "shell",
+      "command": "docker build -t ghcr.io/lusoris/fileflows-real-image:cuda --build-arg FLAVOR=cuda .",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Build (Flavor: cuda13)",
+      "type": "shell",
+      "command": "docker build -t ghcr.io/lusoris/fileflows-real-image:cuda13 --build-arg FLAVOR=cuda13 .",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Lint: Hadolint (Dockerfile)",
+      "type": "shell",
+      "command": "hadolint --config .hadolint.yaml Dockerfile",
+      "group": "test",
+      "problemMatcher": {
+        "owner": "hadolint",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}"
+        ],
+        "pattern": {
+          "regexp": "^(.*):(\\d+)\\s+(DL\\d+|SC\\d+)\\s+(.+)$",
+          "file": 1,
+          "line": 2,
+          "code": 3,
+          "message": 4
+        }
+      }
+    },
+    {
+      "label": "Lint: Yamllint",
+      "type": "shell",
+      "command": "yamllint -c .yamllint.yml .",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Lint: ShellCheck (tests)",
+      "type": "shell",
+      "command": "shellcheck tests/run_tests.sh",
+      "group": "test",
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "Test: Run Pytest Suite",
+      "type": "shell",
+      "command": "pytest tests/ -v --tb=short",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docs: MkDocs Serve",
+      "type": "shell",
+      "command": "mkdocs serve",
+      "group": "none",
+      "problemMatcher": []
+    }
+  ]
+}
+

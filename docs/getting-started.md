@@ -19,8 +19,8 @@ services:
     #   ghcr.io/lusoris/fileflows-real-image:latest  - Universal default (Intel + AMD + NVIDIA runtimes)
     #   ghcr.io/lusoris/fileflows-real-image:intel   - Intel QuickSync & Arc optimized (514MB)
     #   ghcr.io/lusoris/fileflows-real-image:amd     - AMD Radeon & Ryzen APU optimized (473MB)
-    #   ghcr.io/lusoris/fileflows-real-image:cuda    - NVIDIA CUDA 12.8 runtime
-    #   ghcr.io/lusoris/fileflows-real-image:cuda13  - Cutting-edge NVIDIA CUDA 13.3+ runtime (RTX 30/40/50)
+    #   ghcr.io/lusoris/fileflows-real-image:cuda    - Host-based NVIDIA acceleration for NVENC/NVDEC (470MB)
+    #   ghcr.io/lusoris/fileflows-real-image:cuda13  - Minimal NVIDIA CUDA 13.4 runtime with video filters (720MB)
     image: ghcr.io/lusoris/fileflows-real-image:latest
     container_name: fileflows
     restart: unless-stopped

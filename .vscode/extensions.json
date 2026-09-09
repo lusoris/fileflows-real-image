@@ -1,0 +1,16 @@
+{
+  "recommendations": [
+    "ms-azuretools.vscode-docker",
+    "exiasr.hadolint",
+    "redhat.vscode-yaml",
+    "timonwong.shellcheck",
+    "mads-hartmann.bash-ide-vscode",
+    "foxundermoon.shell-format",
+    "editorconfig.editorconfig",
+    "davidanson.vscode-markdownlint",
+    "github.vscode-github-actions",
+    "ms-python.python",
+    "bierner.markdown-mermaid"
+  ]
+}
+

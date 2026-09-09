@@ -83,26 +83,16 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/*
 
 # ==============================================================================
-# Stage 2c: Flavor CUDA (Standard NVIDIA CUDA 12.x / NVENC / NVDEC)
+# Stage 2c: Flavor CUDA (Host-Based NVIDIA CUDA / NVENC / NVDEC)
 # ==============================================================================
 FROM base-common AS base-cuda
 
-ARG DEBIAN_FRONTEND=noninteractive
-
-RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
-        curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb -o /tmp/cuda-keyring.deb && \
-        dpkg -i /tmp/cuda-keyring.deb && \
-        rm -f /tmp/cuda-keyring.deb && \
-        apt-get update && \
-        apt-get install -y --no-install-recommends \
-            cuda-libraries-12-8 \
-            cuda-compat-12-8 && \
-        apt-get clean && \
-        rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/*; \
-    fi
+# Host-based NVIDIA acceleration:
+# Relies directly on host-injected driver libraries (libcuda.so.1, libnvidia-encode.so.1,
+# libnvcuvid.so.1) via NVIDIA Container Toolkit with zero in-container package bloat.
 
 # ==============================================================================
-# Stage 2d: Flavor CUDA 13 (Cutting-Edge NVIDIA CUDA 13.3+ Runtime & Libraries)
+# Stage 2d: Flavor CUDA 13 (Minimal Cutting-Edge NVIDIA CUDA 13.4+ Runtime & Filters)
 # ==============================================================================
 FROM base-common AS base-cuda13
 
@@ -114,8 +104,9 @@ RUN if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
         rm -f /tmp/cuda-keyring.deb && \
         apt-get update && \
         apt-get install -y --no-install-recommends \
-            cuda-libraries-13-3 \
-            cuda-compat-13-3 && \
+            cuda-cudart-13-4 \
+            cuda-nvrtc-13-4 \
+            libnpp-13-4 && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/*; \
     fi
@@ -166,8 +157,8 @@ LABEL org.opencontainers.image.title="FileFlows Real Image (${FLAVOR})" \
       org.opencontainers.image.vendor="lusoris"
 
 # Environment variables matching FileFlows configuration & container performance optimizations
-ENV PATH=/usr/local/cuda-13.3/bin:/usr/local/cuda-12.8/bin:/usr/local/cuda/bin:/dotnet:/dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
-    LD_LIBRARY_PATH=/usr/local/cuda-13.3/lib64:/usr/local/cuda-13.3/compat:/usr/local/cuda-12.8/lib64:/usr/local/cuda-12.8/compat:/usr/local/cuda/lib64 \
+ENV PATH=/usr/local/cuda-13.4/bin:/usr/local/cuda-13.3/bin:/usr/local/cuda-12.8/bin:/usr/local/cuda/bin:/dotnet:/dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    LD_LIBRARY_PATH=/usr/local/cuda-13.4/lib64:/usr/local/cuda-13.3/lib64:/usr/local/cuda-12.8/lib64:/usr/local/cuda/lib64 \
     DOTNET_ROOT=/dotnet \
     NVIDIA_DRIVER_CAPABILITIES=compute,video,utility \
     NVIDIA_VISIBLE_DEVICES=all \

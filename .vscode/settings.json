@@ -1,0 +1,88 @@
+{
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.insertFinalNewline": true,
+  "editor.trimTrailingWhitespace": true,
+  "files.eol": "\n",
+  "files.encoding": "utf8",
+
+  "files.associations": {
+    "Dockerfile*": "dockerfile",
+    ".hadolint.yaml": "yaml",
+    ".yamllint.yml": "yaml",
+    "renovate.json": "jsonc"
+  },
+
+  "[dockerfile]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  },
+
+  "[markdown]": {
+    "editor.tabSize": 2,
+    "editor.trimTrailingWhitespace": false
+  },
+
+  "[python]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  },
+
+  "[shellscript]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  },
+
+  "[yaml]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+
+  "docker.dockerPath": "docker",
+  "docker.composeBuild": true,
+
+  "hadolint.hadolintPath": "hadolint",
+  "hadolint.outputMode": "onType",
+
+  "yaml.validate": true,
+  "yaml.format.enable": true,
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json": [
+      "docker-compose.yml",
+      "docker-compose.*.yml"
+    ],
+    "https://json.schemastore.org/github-workflow.json": [
+      ".github/workflows/*.yml",
+      ".github/workflows/*.yaml"
+    ],
+    "https://docs.renovatebot.com/renovate-schema.json": [
+      "renovate.json",
+      ".renovaterc.json"
+    ]
+  },
+
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+
+  "markdownlint.config": {
+    "MD013": false,
+    "MD033": false
+  },
+
+  "files.exclude": {
+    "**/.git": true,
+    "**/.pytest_cache": true,
+    "**/__pycache__": true,
+    "**/build-docs/site": true
+  },
+
+  "search.exclude": {
+    "**/build-docs/site": true,
+    "**/.pytest_cache": true,
+    "**/__pycache__": true
+  }
+}
+

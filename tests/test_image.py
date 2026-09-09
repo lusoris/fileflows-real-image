@@ -108,15 +108,23 @@ class TestArchitecturalInvariants:
                 f"mesa-libgallium not installed: {res.stdout}"
             )
         elif flavor == "cuda":
-            res = run_in_container("dpkg-query -W -f='${Status}' cuda-libraries-12-8 2>/dev/null")
-            assert "install ok installed" in res.stdout, (
-                f"cuda-libraries-12-8 not installed: {res.stdout}"
+            # Host-based CUDA uses driver injection; verify NVIDIA environment hooks and zero bloat packages
+            res = subprocess.run(
+                ["docker", "image", "inspect", IMAGE_NAME, "--format", "{{json .Config.Env}}"],
+                stdout=subprocess.PIPE,
+                text=True,
+                check=True,
             )
+            assert "NVIDIA_DRIVER_CAPABILITIES=compute,video,utility" in res.stdout
+            dpkg_res = run_in_container("dpkg-query -W -f='${Status}' libcublas-12-8 2>/dev/null")
+            assert "install ok installed" not in dpkg_res.stdout, "libcublas must not be installed in host-based cuda flavor"
         elif flavor == "cuda13":
-            res = run_in_container("dpkg-query -W -f='${Status}' cuda-libraries-13-3 2>/dev/null")
+            res = run_in_container("dpkg-query -W -f='${Status}' cuda-nvrtc-13-4 2>/dev/null")
             assert "install ok installed" in res.stdout, (
-                f"cuda-libraries-13-3 not installed: {res.stdout}"
+                f"cuda-nvrtc-13-4 not installed: {res.stdout}"
             )
+            dpkg_res = run_in_container("dpkg-query -W -f='${Status}' libcublas-13-4 2>/dev/null")
+            assert "install ok installed" not in dpkg_res.stdout, "libcublas must not be installed in minimal cuda13 flavor"
 
     def test_vaapi_and_qsv_driver_stack(self):
         """Invariant: Hardware acceleration packages matching flavor must be installed."""
@@ -172,7 +180,7 @@ class TestImageMetricsAndFootprint:
     def test_virtual_disk_size_limit(self):
         """Assert image virtual disk size meets gate threshold per flavor."""
         flavor = get_image_flavor()
-        max_size = 7.0 if "cuda" in flavor else 2.5
+        max_size = 3.5 if "cuda" in flavor else 2.5
         res = subprocess.run(
             ["docker", "image", "inspect", IMAGE_NAME, "--format", "{{.Size}}"],
             stdout=subprocess.PIPE,
