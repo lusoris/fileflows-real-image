@@ -43,7 +43,7 @@ flowchart TD
 
     Stage2 --> BaseBuilder
     BaseBuilder --> Stage3[Stage 3: production]
-    Stage3 -->|FROM scratch COPY --from=base-builder / /| FinalImage[revenz/fileflows:optimized]
+    Stage3 -->|FROM scratch COPY --from=base-builder / /| FinalImage[ghcr.io/lusoris/fileflows-real-image:latest]
 ```
 
 ### Stage 1: `app-source`

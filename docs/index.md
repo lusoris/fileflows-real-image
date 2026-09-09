@@ -29,7 +29,7 @@ flowchart LR
         E[Missing Intel driver: 15s boot delay]
     end
 
-    subgraph RealImage["Real Image: revenz/fileflows:optimized (564 MB)"]
+    subgraph RealImage["Real Image: ghcr.io/lusoris/fileflows-real-image:latest (564 MB)"]
         F[aspnetcore-runtime-10.0: 96MB]
         G[Rootfs Flattened: 0 Base CVEs]
         H[Shared dynamic libs only]
@@ -44,7 +44,7 @@ flowchart LR
 
 ## Metrics & Comparison
 
-| Metric | Upstream (`revenz/fileflows:latest`) | Real Image (`revenz/fileflows:optimized`) | Difference |
+| Metric | Upstream (`revenz/fileflows:latest`) | Real Image (`ghcr.io/lusoris/fileflows-real-image:latest`) | Difference |
 | :--- | :--- | :--- | :--- |
 | **Content Size** | **999 MB** | **564 MB** | **-435 MB (-43.5%)** |
 | **Virtual Disk Usage** | **3.57 GB** | **2.06 GB** | **-1.51 GB (-42.3%)** |

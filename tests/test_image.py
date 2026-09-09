@@ -18,7 +18,7 @@ import time
 import urllib.request
 import pytest
 
-IMAGE_NAME = os.environ.get("TEST_IMAGE", "revenz/fileflows:optimized")
+IMAGE_NAME = os.environ.get("TEST_IMAGE", "ghcr.io/lusoris/fileflows-real-image:latest")
 
 
 def run_in_container(cmd: str) -> subprocess.CompletedProcess:

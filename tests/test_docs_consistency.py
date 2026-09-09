@@ -143,8 +143,8 @@ class TestDocsConsistency:
         doc_service = doc_compose["services"]["fileflows"]
 
         # 1. Image name
-        assert doc_service["image"].startswith("revenz/fileflows:optimized"), (
-            f"README compose image '{doc_service['image']}' does not match 'revenz/fileflows:optimized'"
+        assert doc_service["image"].startswith("ghcr.io/lusoris/fileflows-real-image:latest"), (
+            f"README compose image '{doc_service['image']}' does not match 'ghcr.io/lusoris/fileflows-real-image:latest'"
         )
 
         # 2. Port mapping (must expose port 5000 from container with default host 19200)

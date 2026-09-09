@@ -12,7 +12,7 @@ Thank you for your interest in improving this image!
    - Run the local assertion and doc consistency suite before submitting:
      ```bash
      # Build image
-     docker build -t revenz/fileflows:optimized .
+     docker build -t ghcr.io/lusoris/fileflows-real-image:latest .
 
      # Run complete test & doc consistency suite
      pytest tests/ -v --tb=short

@@ -1,6 +1,6 @@
 services:
   fileflows:
-    image: revenz/fileflows:optimized
+    image: ghcr.io/lusoris/fileflows-real-image:latest
     container_name: fileflows
     restart: unless-stopped
     init: true

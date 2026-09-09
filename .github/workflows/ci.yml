@@ -71,7 +71,7 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: revenz/fileflows:optimized
+          tags: ghcr.io/lusoris/fileflows-real-image:latest
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -88,14 +88,14 @@ jobs:
 
       - name: Run Pytest Test Suite
         env:
-          TEST_IMAGE: revenz/fileflows:optimized
+          TEST_IMAGE: ghcr.io/lusoris/fileflows-real-image:latest
         run: |
           pytest tests/ -v --tb=short
 
       - name: Analyze Image Layer Efficiency (Dive)
         run: |
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-            wagoodman/dive:latest --ci --lowestEfficiency 0.90 revenz/fileflows:optimized
+            wagoodman/dive:latest --ci --lowestEfficiency 0.90 ghcr.io/lusoris/fileflows-real-image:latest
 
   security-scan:
     name: Zero-CVE Security Scan (Trivy)
@@ -113,14 +113,14 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: revenz/fileflows:optimized
+          tags: ghcr.io/lusoris/fileflows-real-image:latest
           load: true
           cache-from: type=gha
 
       - name: Run Trivy Vulnerability Scanner
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: "revenz/fileflows:optimized"
+          image-ref: "ghcr.io/lusoris/fileflows-real-image:latest"
           format: "table"
           exit-code: "1"
           ignore-unfixed: true
@@ -143,7 +143,7 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          tags: revenz/fileflows:optimized
+          tags: ghcr.io/lusoris/fileflows-real-image:latest
           load: true
           cache-from: type=gha
 

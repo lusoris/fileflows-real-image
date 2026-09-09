@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IMAGE_NAME="${TEST_IMAGE:-revenz/fileflows:optimized}"
+IMAGE_NAME="${TEST_IMAGE:-ghcr.io/lusoris/fileflows-real-image:latest}"
 echo "==> Running FileFlows Real Image assertion test suite against: ${IMAGE_NAME}"
 
 # Ensure python3 and pytest are installed

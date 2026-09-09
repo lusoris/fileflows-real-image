@@ -29,7 +29,7 @@ The upstream container (`revenz/fileflows:latest`, upstream version `26.09.2`) i
 
 ## Metrics & Comparison
 
-| Metric | Upstream (`revenz/fileflows:latest`) | Real Image (`revenz/fileflows:optimized`) | Difference |
+| Metric | Upstream (`revenz/fileflows:latest`) | Real Image (`ghcr.io/lusoris/fileflows-real-image:latest`) | Difference |
 | :--- | :--- | :--- | :--- |
 | **Content Size** | **999 MB** | **564 MB** | **-435 MB (-43.5%)** |
 | **Virtual Disk Usage** | **3.57 GB** | **2.06 GB** | **-1.51 GB (-42.3%)** |
@@ -48,7 +48,7 @@ Run the container using [Docker Compose](docker-compose.yml):
 ```yaml
 services:
   fileflows:
-    image: revenz/fileflows:optimized # or ghcr.io/lusoris/fileflows-real-image:latest
+    image: ghcr.io/lusoris/fileflows-real-image:latest
     container_name: fileflows
     restart: unless-stopped
     init: true
