@@ -280,10 +280,31 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           RELEASE_TAG="${{ steps.version-extractor.outputs.release_tag }}"
+          VERSION_NUM=$(echo "$RELEASE_TAG" | sed 's/^v//')
+
+          # Dynamically extract changelog section from CHANGELOG.md if present
+          CHANGELOG_SECTION=""
+          if [ -f CHANGELOG.md ]; then
+            CHANGELOG_SECTION=$(awk -v ver="$VERSION_NUM" '
+              $0 ~ "^## \\[" ver "\\]" { found=1; next }
+              found && /^## \[/ { exit }
+              found { print }
+            ' CHANGELOG.md | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+          fi
+
+          CHANGELOG_BLOCK=""
+          if [ -n "$CHANGELOG_SECTION" ]; then
+            CHANGELOG_BLOCK="---
+
+          ### What's Changed in $RELEASE_TAG
+
+          $CHANGELOG_SECTION"
+          fi
 
           gh release create "$RELEASE_TAG" \
             --target "$GITHUB_SHA" \
             --title "FileFlows Real Image $RELEASE_TAG (Upstream ${{ steps.version-extractor.outputs.short_version }})" \
+            --generate-notes \
             --notes "## FileFlows Real Image $RELEASE_TAG
 
           Hardened, multi-stage production release built from upstream \`revenz/fileflows:latest\`.
@@ -294,6 +315,10 @@ jobs:
           - **Base OS**: Ubuntu 26.04 (Resolute) with zero base CVEs
           - **Available Flavors**: \`all\` (default), \`intel\`, \`amd\`, \`cuda\` (Host-based CUDA), \`cuda13\` (CUDA 13.4)
           - **License**: [EUPL-1.2](https://github.com/${{ github.repository }}/blob/main/LICENSE)
+
+          $CHANGELOG_BLOCK
+
+          ---
 
           ### Pull Image Flavors
           \`\`\`bash
