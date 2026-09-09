@@ -59,6 +59,14 @@ jobs:
           fi
           echo "Previous recorded digest: $PREV_DIGEST"
 
+          LAST_BUILD_TIME=0
+          if [ -f .last_build_timestamp ]; then
+            LAST_BUILD_TIME=$(cat .last_build_timestamp | tr -d '[:space:]')
+          fi
+          CURRENT_TIME=$(date +%s)
+          HOURS_SINCE_BUILD=$(( (CURRENT_TIME - LAST_BUILD_TIME) / 3600 ))
+          echo "Hours since last build: $HOURS_SINCE_BUILD hrs"
+
           SHOULD_BUILD=false
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force_build }}" = "true" ]; then
             echo "Force build requested via workflow_dispatch."
@@ -69,8 +77,11 @@ jobs:
           elif [ "$UPSTREAM_DIGEST" != "$PREV_DIGEST" ]; then
             echo "Upstream digest changed ($UPSTREAM_DIGEST != $PREV_DIGEST). Triggering build."
             SHOULD_BUILD=true
+          elif [ "$HOURS_SINCE_BUILD" -ge 24 ]; then
+            echo "24 hours have elapsed ($HOURS_SINCE_BUILD hrs >= 24 hrs). Triggering daily security update & package rebuild."
+            SHOULD_BUILD=true
           else
-            echo "Upstream digest is unchanged. Skipping build."
+            echo "Upstream digest is unchanged and < 24h since last build. Skipping build."
           fi
 
           echo "should_build=$SHOULD_BUILD" >> $GITHUB_OUTPUT
@@ -149,15 +160,16 @@ jobs:
             org.opencontainers.image.licenses=EUPL-1.2
             org.opencontainers.image.upstream-digest=${{ steps.check-upstream.outputs.upstream_digest }}
 
-      - name: Update recorded upstream digest in git
+      - name: Update recorded upstream digest & build timestamp in git
         if: steps.check-upstream.outputs.should_build == 'true' && steps.check-upstream.outputs.upstream_digest != ''
         run: |
           echo "${{ steps.check-upstream.outputs.upstream_digest }}" > .upstream_digest
+          date +%s > .last_build_timestamp
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add .upstream_digest
+          git add .upstream_digest .last_build_timestamp
           if ! git diff --quiet || ! git diff --staged --quiet; then
-            git commit -m "chore(auto): record upstream digest ${{ steps.check-upstream.outputs.upstream_digest }}"
+            git commit -m "chore(auto): record upstream digest and build timestamp"
             git push origin main
           fi
 
