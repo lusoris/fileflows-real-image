@@ -1,0 +1,5 @@
+---
+ignored:
+  - DL3006  # Always tag the version of an image explicitly (UPSTREAM_IMAGE is parameterized via ARG)
+  - DL3008  # Pin versions in apt-get install (base security updates must pull latest patched versions)
+  - DL3015  # Avoid additional packages by specifying --no-install-recommends (already specified)
