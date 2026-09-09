@@ -99,6 +99,7 @@ services:
     image: revenz/fileflows:optimized # or ghcr.io/lusoris/fileflows-real-image:latest
     container_name: fileflows
     restart: unless-stopped
+    init: true
     ports:
       - "${PORT:-19200}:5000"
     environment:

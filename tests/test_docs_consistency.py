@@ -169,6 +169,9 @@ class TestDocsConsistency:
         assert doc_service.get("cap_add") == actual_service.get("cap_add"), (
             f"README cap_add {doc_service.get('cap_add')} does not match docker-compose.yml {actual_service.get('cap_add')}"
         )
+        assert doc_service.get("init") == actual_service.get("init"), (
+            f"README init {doc_service.get('init')} does not match docker-compose.yml {actual_service.get('init')}"
+        )
 
     def test_all_markdown_yaml_snippets_parseable(self):
         """Assert every embedded YAML block in any .md file is syntactically valid YAML."""

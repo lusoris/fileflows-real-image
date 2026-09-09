@@ -130,7 +130,7 @@ class TestImageMetricsAndFootprint:
         assert size_gb <= 2.5, f"Virtual size {size_gb:.2f} GB exceeds 2.5 GB gate threshold."
 
     def test_environment_variables_configured(self):
-        """Assert essential environment variables are baked in."""
+        """Assert essential environment variables and .NET container performance flags are baked in."""
         res = subprocess.run(
             ["docker", "image", "inspect", IMAGE_NAME, "--format", "{{json .Config.Env}}"],
             stdout=subprocess.PIPE,
@@ -138,9 +138,21 @@ class TestImageMetricsAndFootprint:
             check=True,
         )
         env = res.stdout
-        assert "DOTNET_CLI_TELEMETRY_OPTOUT=true" in env
+        assert "DOTNET_CLI_TELEMETRY_OPTOUT=1" in env or "DOTNET_CLI_TELEMETRY_OPTOUT=true" in env
         assert "NVIDIA_VISIBLE_DEVICES=all" in env
         assert "NVIDIA_DRIVER_CAPABILITIES=compute,video,utility" in env
+        assert "DOTNET_EnableDiagnostics=0" in env
+        assert "DOTNET_gcServer=1" in env
+
+    def test_healthcheck_configured(self):
+        """Assert native Docker HEALTHCHECK instruction is defined on the image."""
+        res = subprocess.run(
+            ["docker", "image", "inspect", IMAGE_NAME, "--format", "{{json .Config.Healthcheck}}"],
+            stdout=subprocess.PIPE,
+            text=True,
+            check=True,
+        )
+        assert "curl" in res.stdout, f"HEALTHCHECK instruction missing: {res.stdout}"
 
 
 class TestRuntimeSmokeAndWebUI:

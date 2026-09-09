@@ -57,12 +57,25 @@ COPY --from=base-builder / /
 # ==============================================================================
 FROM base-flat
 
-# Environment variables matching FileFlows configuration
+# OCI Standard Metadata Labels
+LABEL org.opencontainers.image.title="FileFlows Real Image" \
+      org.opencontainers.image.description="Hardened, debloated, production-ready multi-stage image built from upstream revenz/fileflows" \
+      org.opencontainers.image.url="https://github.com/lusoris/fileflows-real-image" \
+      org.opencontainers.image.source="https://github.com/lusoris/fileflows-real-image" \
+      org.opencontainers.image.licenses="EUPL-1.2" \
+      org.opencontainers.image.vendor="lusoris"
+
+# Environment variables matching FileFlows configuration & container performance optimizations
 ENV PATH=/dotnet:/dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     DOTNET_ROOT=/dotnet \
     NVIDIA_DRIVER_CAPABILITIES=compute,video,utility \
     NVIDIA_VISIBLE_DEVICES=all \
-    DOTNET_CLI_TELEMETRY_OPTOUT=true
+    DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+    DOTNET_NOLOGO=1 \
+    DOTNET_EnableDiagnostics=0 \
+    DOTNET_gcServer=1 \
+    DOTNET_TieredPGO=1 \
+    DOTNET_TC_QuickJitForLoops=1
 
 # Copy custom binaries directly from upstream image
 COPY --from=upstream /usr/local/bin/docker /usr/local/bin/docker
@@ -76,6 +89,10 @@ RUN chmod +x /usr/local/bin/docker /usr/local/bin/dovi_tool /app/docker-entrypoi
 
 # Expose web UI port
 EXPOSE 5000/tcp
+
+# Healthcheck validating FileFlows web interface
+HEALTHCHECK --interval=20s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -f -s http://127.0.0.1:5000/initial-config || curl -f -s http://127.0.0.1:5000/ || exit 1
 
 WORKDIR /app
 

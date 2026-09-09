@@ -3,6 +3,7 @@ services:
     image: revenz/fileflows:optimized
     container_name: fileflows
     restart: unless-stopped
+    init: true
     ports:
       - "${PORT:-19200}:5000"
     environment:
