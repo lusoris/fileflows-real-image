@@ -178,7 +178,8 @@ COPY --from=upstream /app /app
 
 # Ensure execution permissions on binaries and entrypoint, and neutralize runtime apt-get invocations
 RUN chmod +x /usr/local/bin/docker /usr/local/bin/dovi_tool /app/docker-entrypoint.sh && \
-    sed -i 's/apt-get update && apt-get install -y intel-media-va-driver-non-free/echo "Hardware acceleration pre-configured by FileFlows Real Image."/' /app/docker-entrypoint.sh
+    sed -i 's/apt-get update && apt-get install -y intel-media-va-driver-non-free/echo "Hardware acceleration pre-configured by FileFlows Real Image."/' /app/docker-entrypoint.sh && \
+    sed -i '/Installing intel-media-va-driver-non-free/d' /app/docker-entrypoint.sh
 
 # Expose web UI port
 EXPOSE 5000/tcp
