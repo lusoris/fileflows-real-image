@@ -46,7 +46,6 @@ Every change merged to `main` must adhere to these ten rules. Automated verifica
 - In Python tests, subprocess calls must verify `res.returncode == 0` or execute with `check=True`.
 
 ### Rule 8: Declarative Restraint
-- Build definitions ([Dockerfile](../Dockerfile)) and deployment manifests ([docker-compose.yml](../docker-compose.yml)) must remain purely declarative.
 - Build definitions (`Dockerfile`) and deployment manifests (`docker-compose.yml`) must remain purely declarative.
 - Avoid runtime `eval`, dynamic string execution, or untracked environment variable overrides.
 

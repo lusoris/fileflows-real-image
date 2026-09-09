@@ -82,6 +82,13 @@ class TestDocsConsistency:
                 # URL decode in case of %20 etc
                 file_target = urllib.parse.unquote(file_target)
 
+                # MkDocs strict constraint: docs/ files must not link outside docs/ using relative paths
+                if "docs" in md_file.parts and target.startswith(".."):
+                    missing_targets.append(
+                        f"{md_file.relative_to(REPO_ROOT)}: link '{target}' traverses outside docs/ directory (violates MkDocs strict mode)"
+                    )
+                    continue
+
                 if file_target.startswith("/"):
                     resolved = REPO_ROOT / file_target.lstrip("/")
                 else:
