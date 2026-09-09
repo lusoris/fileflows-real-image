@@ -16,6 +16,15 @@ services:
       - fileflows-common:/common
       # Uncomment and adjust to map your media library:
       # - /path/to/media:/media
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
       # Optional Hardware Acceleration:
       # Intel / AMD VA-API / QSV:
       # devices:

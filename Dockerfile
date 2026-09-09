@@ -22,11 +22,11 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
-        sudo tzdata wget ca-certificates gnupg curl tar xz-utils openssl locales \
-        libfontconfig1 libfreetype6 pciutils vainfo git \
+        sudo tzdata wget ca-certificates curl tar xz-utils openssl locales \
+        libfontconfig1 libfreetype6 pciutils vainfo \
         libssl3 libicu78 libavformat62 libavcodec62 libswscale9 \
         mesa-va-drivers \
-        mkvtoolnix p7zip-full unrar nano \
+        mkvtoolnix p7zip-full unrar \
         aspnetcore-runtime-10.0 && \
     if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
         apt-get install -y --no-install-recommends \
@@ -36,9 +36,14 @@ RUN apt-get update && \
     ln -s /usr/lib/dotnet /dotnet && \
     # Remove Canonical rockcraft pebble daemon and directories to eliminate Go stdlib CVEs
     rm -rf /usr/bin/pebble /var/lib/pebble /etc/pebble && \
-    # Clean package caches and docs
+    # Purge non-English locales (saves ~35MB)
+    find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name 'en*' -exec rm -rf {} + 2>/dev/null || true && \
+    # Strip setuid/setgid bits across system binaries to prevent privilege escalation
+    find /bin /sbin /usr/bin /usr/sbin -perm /6000 -type f -exec chmod a-s {} + 2>/dev/null || true && \
+    # Clean package caches, docs, manpages, and lintian
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/* /usr/share/man /usr/share/doc
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/log/* \
+           /usr/share/man /usr/share/doc /usr/share/info /usr/share/lintian /usr/share/bug
 
 # ==============================================================================
 # Stage 3: Flatten rootfs to purge deleted layers (eliminates pebble from history)

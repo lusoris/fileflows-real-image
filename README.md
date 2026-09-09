@@ -7,8 +7,8 @@
 [![CI Quality Gates](https://github.com/lusoris/fileflows-real-image/actions/workflows/ci.yml/badge.svg)](https://github.com/lusoris/fileflows-real-image/actions/workflows/ci.yml)
 [![CI Build & Release](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml)
 [![License: EUPL 1.2](https://img.shields.io/badge/License-EUPL%201.2-blue.svg)](https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12)
-[![Base CVEs](https://img.shields.io/badge/Base%20CVEs-0%20(100%25%20Fixed)-brightgreen)](#vulnerability-comparison)
-[![Image Size](https://img.shields.io/static/v1?label=Content%20Size&message=591%20MB%20(-41%25)&color=brightgreen)](#metrics--comparison)
+[![Base CVEs](https://img.shields.io/badge/Base%20CVEs-0%20(100%25%20Fixed)-brightgreen)](#metrics--comparison)
+[![Image Size](https://img.shields.io/static/v1?label=Content%20Size&message=564%20MB%20(-43%25)&color=brightgreen)](#metrics--comparison)
 
 ---
 
@@ -41,7 +41,7 @@ This repository provides a self-contained, multi-stage `Dockerfile` that builds 
 
 | Metric | Upstream (`revenz/fileflows:latest`) | Real Image (`revenz/fileflows:optimized`) | Difference |
 | :--- | :--- | :--- | :--- |
-| **Content Size** | **999 MB** | **591 MB** | **-408 MB (-40.8%)** |
+| **Content Size** | **999 MB** | **564 MB** | **-435 MB (-43.5%)** |
 | **Virtual Disk Usage** | **3.57 GB** | **2.06 GB** | **-1.51 GB (-42.3%)** |
 | **Installed Packages** | 1,354 packages | 615 packages | **-739 packages (-54.6%)** |
 | **Base Image CVEs** | 1 Critical, 5 High, 2 Medium | **0 Critical, 0 High, 0 Medium, 0 Low** | **100% Resolved** |
@@ -112,6 +112,15 @@ services:
       - fileflows-common:/common
       # Uncomment and adjust to map your media library:
       # - /path/to/media:/media
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
     # Optional Hardware Acceleration:
     # Intel / AMD VA-API / QSV:
     # devices:

@@ -5,7 +5,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for filing an issue! If you're experiencing an upstream application bug (not container or driver related), please file it in the [upstream repository](https://github.com/revenz/FileFlows/issues).
+        Thanks for filing an issue! If you're experiencing an upstream application bug
+        (not container or driver related), please file it in the
+        [upstream repository](https://github.com/revenz/FileFlows/issues).
   - type: textarea
     id: description
     attributes:

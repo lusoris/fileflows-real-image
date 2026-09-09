@@ -10,7 +10,7 @@ if ! command -v pytest >/dev/null 2>&1; then
     pip install -r "$(dirname "$0")/requirements-test.txt"
 fi
 
-echo "==> Executing pytest suite..."
-pytest "$(dirname "$0")/test_image.py" -v --tb=short
+echo "==> Executing pytest test suite..."
+pytest "$(dirname "$0")" -v --tb=short
 
-echo "==> All image assertion tests passed successfully!"
+echo "==> All image assertion and documentation consistency tests passed successfully!"
