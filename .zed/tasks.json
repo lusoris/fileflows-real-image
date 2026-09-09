@@ -1,0 +1,22 @@
+[
+  {
+    "label": "Build universal image (:latest)",
+    "command": "make build"
+  },
+  {
+    "label": "Build all flavors",
+    "command": "make build-all"
+  },
+  {
+    "label": "Run linters (Hadolint, Yamllint, ShellCheck)",
+    "command": "make lint"
+  },
+  {
+    "label": "Run documentation consistency tests",
+    "command": "make test-docs"
+  },
+  {
+    "label": "Run pre-commit on all files",
+    "command": "pre-commit run --all-files"
+  }
+]

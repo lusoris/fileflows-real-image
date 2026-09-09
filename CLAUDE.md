@@ -34,7 +34,23 @@ make docs-build          # Build MkDocs site with strict validation
 
 ---
 
-## 3. Strict Prohibitions ("Don't")
+## 3. Modular Agent Skills & Subagents
+
+Standardized skills are maintained in `.agents/skills/` (mirrored to `.claude/skills/`):
+- `/build-flavor [flavor]`: Build target image with size gating.
+- `/test-image [tag]`: Run full container assertion and runtime smoke tests.
+- `/lint-all [--fix]`: Run Hadolint, Yamllint, ShellCheck, pre-commit.
+- `/sync-upstream`: Query upstream Docker Hub digest and bump version.
+- `/security-audit`: Run Trivy scan and NuGet vulnerability checks.
+- `/prep-release`: Prepare changelog, verify quality gates, and validate tags.
+
+Review agents in `.claude/agents/`:
+- `container-reviewer`: Validates Dockerfile changes against invariants and layer squashing.
+- `docs-reviewer`: Validates markdown links, anchors, and table metrics.
+
+---
+
+## 4. Strict Prohibitions ("Don't")
 
 1. **Don't install .NET SDK**: Never install `dotnet-sdk-*`. Always use `aspnetcore-runtime-10.0`.
 2. **Don't add `-dev` packages**: Production stages must strictly use shared runtime libraries (`libavcodec62`, `libavformat62`, `libswscale9`, `libssl3`, `libicu78`).

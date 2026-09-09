@@ -1,0 +1,34 @@
+{
+  "tab_size": 2,
+  "hard_tabs": false,
+  "line_ending": "lf",
+  "ensure_final_newline_on_save": true,
+  "remove_trailing_whitespace_on_save": true,
+  "preferred_line_length": 100,
+  "show_wrap_guides": true,
+  "soft_wrap": "preferred_line_length",
+
+  "file_scan_exclusions": [
+    ".git",
+    ".pytest_cache",
+    ".ruff_cache",
+    "__pycache__",
+    "build-docs",
+    "site"
+  ],
+
+  "languages": {
+    "Python": {
+      "tab_size": 4
+    },
+    "YAML": {
+      "tab_size": 2
+    },
+    "Shell Script": {
+      "tab_size": 2
+    },
+    "Dockerfile": {
+      "tab_size": 4
+    }
+  }
+}

@@ -23,6 +23,10 @@ Thumbs.db
 *.swp
 *~
 
+# Claude Code local state and overrides
+.claude/*.local.json
+.claude/history*
+
 # Python cache & test artifacts
 __pycache__/
 *.py[cod]

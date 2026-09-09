@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Comprehensive multi-AI contributor directives: [AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md), [.windsurfrules](.windsurfrules), and [.cursor/rules/fileflows.mdc](.cursor/rules/fileflows.mdc).
+- Standardized modular agent skills in `.agents/skills/` (`build-flavor`, `test-image`, `lint-all`, `sync-upstream`, `security-audit`, `prep-release`).
+- Claude Code tool configurations, symlinked skills, and review subagents in `.claude/` (`container-reviewer`, `docs-reviewer`).
+- GitHub Copilot instructions in [.github/copilot-instructions.md](.github/copilot-instructions.md) and root [.cursorrules](.cursorrules).
+- Zed editor configuration and tasks in [.zed/](.zed/).
 - Automated linting and secret protection via [.pre-commit-config.yaml](.pre-commit-config.yaml), [.markdownlint.json](.markdownlint.json), [.codespellrc](.codespellrc), and [.gitleaks.toml](.gitleaks.toml).
 - Developer convenience tooling: [Makefile](Makefile) and [pyproject.toml](pyproject.toml).
 - Curated zero-shareware VS Code workspace configuration in [.vscode/](.vscode/).

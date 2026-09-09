@@ -75,15 +75,36 @@ It achieves:
 
 ```text
 .
+├── .agents/
+│   └── skills/                    # Modular AI agent skills (cross-agent standard)
+│       ├── build-flavor/          # /build-flavor: build specific flavor with size checks
+│       ├── test-image/            # /test-image: run full container assertion suite
+│       ├── lint-all/              # /lint-all: run hadolint, yamllint, shellcheck, pre-commit
+│       ├── sync-upstream/         # /sync-upstream: track revenz/fileflows:latest digest
+│       ├── security-audit/        # /security-audit: zero-CVE and NuGet vulnerability audit
+│       └── prep-release/          # /prep-release: changelog, size audit, tag preparation
+├── .claude/
+│   ├── agents/                    # Specialized review agents (container-reviewer, docs-reviewer)
+│   ├── settings.json              # Tool permissions and command whitelists
+│   └── skills -> ../.agents/skills # Symlinked agent skills
+├── .cursor/
+│   └── rules/fileflows.mdc        # Cursor editor semantic rules
+├── .devcontainer/
+│   └── devcontainer.json          # Containerized development workspace definition
 ├── .github/
-│   └── workflows/
-│       ├── build-and-release.yml  # Multi-arch Buildx matrix, release tagging, badges
-│       ├── ci.yml                 # Lint, Hadolint, Yamllint, Pytest, Dive, Trivy, Compose E2E
-│       └── docs.yml               # MkDocs strict build and GitHub Pages deployment
+│   ├── ISSUE_TEMPLATE/            # Bug report and feature request forms
+│   ├── workflows/                 # Multi-arch CI, build-and-release, and docs pipelines
+│   ├── CODEOWNERS                 # Repository code ownership
+│   ├── copilot-instructions.md    # GitHub Copilot agent directives
+│   ├── FUNDING.yml                # Sponsor configuration
+│   └── PULL_REQUEST_TEMPLATE.md   # Pull request verification checklist
 ├── .vscode/
 │   ├── extensions.json            # Curated zero-shareware extensions
 │   ├── settings.json              # Schemas, indentation, linter configurations
 │   └── tasks.json                 # Build, test, lint, and docs tasks
+├── .zed/
+│   ├── settings.json              # Zed editor configuration
+│   └── tasks.json                 # Zed development tasks
 ├── docs/                          # Material MkDocs documentation source
 │   ├── badges/                    # Dynamic Shields.io JSON endpoints
 │   ├── architecture.md            # Multi-stage design & rootfs squashing
@@ -95,6 +116,9 @@ It achieves:
 │   ├── test_image.py              # Invariant assertions, size gates, live HTTP smoke
 │   ├── requirements-test.txt      # Test runner dependencies (pytest, pyyaml)
 │   └── run_tests.sh               # CI test runner wrapper
+├── .cursorrules                   # Root Cursor compatibility pointer
+├── .windsurfrules                 # Windsurf IDE agent directives
+├── CLAUDE.md                      # Claude Code instructions
 ├── Dockerfile                     # Canonical multi-stage OCI build definition
 ├── Dockerfile.optimized           # Mirror of Dockerfile (kept in 100% sync)
 ├── docker-compose.yml             # Drop-in production Compose deployment
@@ -105,7 +129,22 @@ It achieves:
 
 ---
 
-## 5. Build & Test Commands
+## 5. Agent Skills & Slash Commands
+
+This repository implements standardized skills under `.agents/skills/` (compatible with Antigravity, Claude Code, Cursor, OpenCode, and Codex):
+
+| Command | Skill Directory | Description |
+| :--- | :--- | :--- |
+| **`/build-flavor`** | [.agents/skills/build-flavor](.agents/skills/build-flavor/SKILL.md) | Build specific flavor (`all`, `intel`, `amd`, `cuda`, `cuda13`) with size gates |
+| **`/test-image`** | [.agents/skills/test-image](.agents/skills/test-image/SKILL.md) | Run Pytest container assertion suite and HTTP smoke tests |
+| **`/lint-all`** | [.agents/skills/lint-all](.agents/skills/lint-all/SKILL.md) | Run Hadolint, Yamllint, ShellCheck, pre-commit, and doc consistency checks |
+| **`/sync-upstream`** | [.agents/skills/sync-upstream](.agents/skills/sync-upstream/SKILL.md) | Compare against `revenz/fileflows:latest`, bump version, and test build |
+| **`/security-audit`** | [.agents/skills/security-audit](.agents/skills/security-audit/SKILL.md) | Run Trivy scans, verify Pebble purge, and validate NuGet dependency versions |
+| **`/prep-release`** | [.agents/skills/prep-release](.agents/skills/prep-release/SKILL.md) | Verify git status, update `CHANGELOG.md`, audit sizes, and validate tags |
+
+---
+
+## 6. Build & Test Commands
 
 ### Using Make
 ```bash

@@ -1,0 +1,10 @@
+# Cursor Rules — FileFlows Real Image
+
+This project follows authoritative engineering directives defined in AGENTS.md.
+Cursor rules for this workspace are modularized under `.cursor/rules/fileflows.mdc`.
+
+Key Principles:
+1. Preserve all architectural invariants in AGENTS.md (Ubuntu 26.04, Zero Base CVEs, aspnetcore-runtime-10.0, no dotnet-sdk, instant startup).
+2. Dockerfile and Dockerfile.optimized must remain 100% byte-identical.
+3. Every user-discoverable change must update documentation (README.md and docs/) in the same commit.
+4. All commit messages, code comments, and documentation must be written in English.

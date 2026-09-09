@@ -14,3 +14,12 @@ site
 docs
 Makefile
 pyproject.toml
+.agents
+.claude
+.zed
+.cursorrules
+.windsurfrules
+.codespellrc
+.gitleaks.toml
+.markdownlint.json
+.pre-commit-config.yaml
