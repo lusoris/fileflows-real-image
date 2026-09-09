@@ -29,3 +29,7 @@ htmlcov/
 # Documentation build output
 /build-docs/
 /site/
+
+# Ephemeral build artifacts
+.upstream_digest
+.last_build_timestamp

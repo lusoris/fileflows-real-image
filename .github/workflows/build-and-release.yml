@@ -40,6 +40,8 @@ jobs:
 
       - name: Check upstream Docker Hub image digest
         id: check-upstream
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Fetching upstream digest for revenz/fileflows:latest..."
           UPSTREAM_JSON=$(curl -s -f "https://hub.docker.com/v2/repositories/revenz/fileflows/tags/latest")
@@ -54,15 +56,30 @@ jobs:
           echo "upstream_digest=$UPSTREAM_DIGEST" >> $GITHUB_OUTPUT
 
           PREV_DIGEST=""
-          if [ -f .upstream_digest ]; then
+          LAST_BUILD_TIME=0
+
+          # 1. Fetch previous digest & build timestamp from the latest GitHub Release
+          if command -v gh >/dev/null 2>&1; then
+            echo "Querying latest release from GitHub API..."
+            LATEST_RELEASE_JSON=$(gh release view --json body,publishedAt 2>/dev/null || true)
+            if [ -n "$LATEST_RELEASE_JSON" ]; then
+              PREV_DIGEST=$(echo "$LATEST_RELEASE_JSON" | jq -r '.body // empty' | grep -o 'sha256:[a-f0-9]\{64\}' | head -n 1 || true)
+              PUB_DATE=$(echo "$LATEST_RELEASE_JSON" | jq -r '.publishedAt // empty')
+              if [ -n "$PUB_DATE" ]; then
+                LAST_BUILD_TIME=$(date -d "$PUB_DATE" +%s 2>/dev/null || echo 0)
+              fi
+            fi
+          fi
+
+          # 2. Fallbacks if no release exists yet
+          if [ -z "$PREV_DIGEST" ] && [ -f .upstream_digest ]; then
             PREV_DIGEST=$(cat .upstream_digest | tr -d '[:space:]')
           fi
-          echo "Previous recorded digest: $PREV_DIGEST"
-
-          LAST_BUILD_TIME=0
-          if [ -f .last_build_timestamp ]; then
+          if [ "$LAST_BUILD_TIME" -eq 0 ] && [ -f .last_build_timestamp ]; then
             LAST_BUILD_TIME=$(cat .last_build_timestamp | tr -d '[:space:]')
           fi
+
+          echo "Previous recorded digest: $PREV_DIGEST"
           CURRENT_TIME=$(date +%s)
           HOURS_SINCE_BUILD=$(( (CURRENT_TIME - LAST_BUILD_TIME) / 3600 ))
           echo "Hours since last build: $HOURS_SINCE_BUILD hrs"
@@ -119,9 +136,16 @@ jobs:
           # Upstream short digest (first 7 characters)
           SHORT_DIGEST=$(echo "${{ steps.check-upstream.outputs.upstream_digest }}" | sed 's/sha256://' | cut -c1-7)
 
-          # Calculate repository revision count for this upstream version
-          EXISTING_COUNT=$(git tag -l "v${SHORT_VER}-real.*" | wc -l)
-          REV=$((EXISTING_COUNT + 1))
+          # Fetch remote tags to ensure accurate monotonic revision sequence
+          git fetch --tags origin || true
+
+          # Calculate highest repository revision for this upstream version
+          HIGHEST_REV=$(git tag -l "v${SHORT_VER}-real.*" | sed -E 's/.*-real\.([0-9]+)/\1/' | sort -n | tail -n 1)
+          if [ -z "$HIGHEST_REV" ]; then
+            REV=1
+          else
+            REV=$((HIGHEST_REV + 1))
+          fi
 
           RELEASE_TAG="v${SHORT_VER}-real.${REV}"
           IMAGE_TAG_REV="${SHORT_VER}-real.${REV}"
@@ -160,19 +184,6 @@ jobs:
             org.opencontainers.image.licenses=EUPL-1.2
             org.opencontainers.image.upstream-digest=${{ steps.check-upstream.outputs.upstream_digest }}
 
-      - name: Update recorded upstream digest & build timestamp in git
-        if: steps.check-upstream.outputs.should_build == 'true' && steps.check-upstream.outputs.upstream_digest != ''
-        run: |
-          echo "${{ steps.check-upstream.outputs.upstream_digest }}" > .upstream_digest
-          date +%s > .last_build_timestamp
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add .upstream_digest .last_build_timestamp
-          if ! git diff --quiet || ! git diff --staged --quiet; then
-            git commit -m "chore(auto): record upstream digest and build timestamp"
-            git push origin main
-          fi
-
       - name: Create GitHub Release
         if: steps.check-upstream.outputs.should_build == 'true' && steps.version-extractor.outputs.full_version != 'latest'
         env:
@@ -181,6 +192,7 @@ jobs:
           RELEASE_TAG="${{ steps.version-extractor.outputs.release_tag }}"
 
           gh release create "$RELEASE_TAG" \
+            --target "$GITHUB_SHA" \
             --title "FileFlows Real Image $RELEASE_TAG (Upstream ${{ steps.version-extractor.outputs.short_version }})" \
             --notes "## FileFlows Real Image $RELEASE_TAG
 
