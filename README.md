@@ -4,6 +4,7 @@
 
 [![Ubuntu 26.04](https://img.shields.io/badge/Ubuntu-26.04%20Resolute-orange?logo=ubuntu)](https://ubuntu.com)
 [![Docker](https://img.shields.io/badge/Docker-Multi--Stage-blue?logo=docker)](https://docs.docker.com/build/building/multi-stage/)
+[![License: EUPL 1.2](https://img.shields.io/badge/License-EUPL%201.2-blue.svg)](https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12)
 [![Base CVEs](https://img.shields.io/badge/Base%20CVEs-0%20(100%25%20Fixed)-brightgreen)](#vulnerability-comparison)
 [![Image Size](https://img.shields.io/badge/Content%20Size-591%20MB%20(-41%25)-success)](#metrics--comparison)
 
@@ -106,4 +107,4 @@ docker run -d \
 
 ## License
 
-This Dockerfile and optimization recipe is licensed under the [MIT License](LICENSE). FileFlows itself is subject to its original upstream licensing.
+This Dockerfile and optimization recipe is licensed under the [European Union Public Licence (EUPL-1.2)](LICENSE). FileFlows itself is subject to its original upstream licensing.
