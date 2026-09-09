@@ -75,25 +75,60 @@ docker build --build-arg UPSTREAM_IMAGE=revenz/fileflows:26.09.2 -t revenz/filef
 
 ## How to Run
 
-Run with Docker Compose:
+### Using Docker Compose (Recommended)
+
+A ready-to-use [`docker-compose.yml`](docker-compose.yml) structured according to the official [FileFlows Docker Generator](https://fileflows.com/docs/installation/docker) is included in the repository. Simply run:
+
+```bash
+docker compose up -d
+```
+
+To configure custom ports (default `19200`), timezone, or UID/GID, copy `.env.example` to `.env`:
+
+```bash
+cp .env.example .env
+docker compose up -d
+```
+
+The standard `docker-compose.yml` uses the optimized image directly:
 
 ```yaml
 services:
   fileflows:
-    image: revenz/fileflows:optimized
+    image: revenz/fileflows:optimized # or ghcr.io/lusoris/fileflows-real-image:latest
     container_name: fileflows
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "${PORT:-19200}:5000"
     environment:
-      - TZ=UTC
-      - PUID=1000
-      - PGID=1000
+      - TZ=${TZ:-UTC}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
     volumes:
-      - ./data:/app/Data
-      - /path/to/media:/media
-    devices:
-      - /dev/dri:/dev/dri # Optional: Intel / AMD GPU acceleration
+      - fileflows-data:/app/Data
+      - fileflows-temp:/temp
+      - fileflows-logs:/app/Logs
+      - fileflows-common:/common
+      # Uncomment and adjust to map your media library:
+      # - /path/to/media:/media
+    # Optional Hardware Acceleration:
+    # Intel / AMD VA-API / QSV:
+    # devices:
+    #   - /dev/dri:/dev/dri
+    # NVIDIA GPU:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  fileflows-data:
+  fileflows-temp:
+  fileflows-logs:
+  fileflows-common:
 ```
 
 Or run via Docker CLI:
@@ -102,12 +137,18 @@ Or run via Docker CLI:
 docker run -d \
   --name fileflows \
   --restart unless-stopped \
-  -p 5000:5000 \
+  -p 19200:5000 \
   -e TZ=UTC \
   -e PUID=1000 \
   -e PGID=1000 \
   -v fileflows-data:/app/Data \
+  -v fileflows-temp:/temp \
+  -v fileflows-logs:/app/Logs \
+  -v fileflows-common:/common \
   -v /path/to/media:/media \
+  --device /dev/dri:/dev/dri \
+  revenz/fileflows:optimized
+```
   --device /dev/dri:/dev/dri \
   revenz/fileflows:optimized
 ```

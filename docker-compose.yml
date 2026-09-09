@@ -1,0 +1,36 @@
+services:
+  fileflows:
+    image: revenz/fileflows:optimized
+    container_name: fileflows
+    restart: unless-stopped
+    ports:
+      - "${PORT:-19200}:5000"
+    environment:
+      - TZ=${TZ:-UTC}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+    volumes:
+      - fileflows-data:/app/Data
+      - fileflows-temp:/temp
+      - fileflows-logs:/app/Logs
+      - fileflows-common:/common
+      # Uncomment and adjust to map your media library:
+      # - /path/to/media:/media
+    # Optional Hardware Acceleration:
+    # Intel / AMD VA-API / QSV:
+    # devices:
+    #   - /dev/dri:/dev/dri
+    # NVIDIA GPU:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  fileflows-data:
+  fileflows-temp:
+  fileflows-logs:
+  fileflows-common:
