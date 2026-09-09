@@ -4,9 +4,10 @@
 
 [![Ubuntu 26.04](https://img.shields.io/badge/Ubuntu-26.04%20Resolute-orange?logo=ubuntu)](https://ubuntu.com)
 [![Docker](https://img.shields.io/badge/Docker-Multi--Stage-blue?logo=docker)](https://docs.docker.com/build/building/multi-stage/)
+[![CI Build](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml)
 [![License: EUPL 1.2](https://img.shields.io/badge/License-EUPL%201.2-blue.svg)](https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12)
 [![Base CVEs](https://img.shields.io/badge/Base%20CVEs-0%20(100%25%20Fixed)-brightgreen)](#vulnerability-comparison)
-[![Image Size](https://img.shields.io/badge/Content%20Size-591%20MB%20(-41%25)-success)](#metrics--comparison)
+[![Image Size](https://img.shields.io/static/v1?label=Content%20Size&message=591%20MB%20(-41%25)&color=brightgreen)](#metrics--comparison)
 
 ---
 
@@ -48,9 +49,17 @@ This repository provides a self-contained, multi-stage `Dockerfile` that builds 
 
 ---
 
-## How to Build
+## Quick Start (Pre-built Image)
 
-The build is completely self-contained. Clone this repository and run:
+Pull the pre-built image directly from GitHub Container Registry (GHCR):
+
+```bash
+docker pull ghcr.io/lusoris/fileflows-real-image:latest
+```
+
+---
+
+## How to Build Locally
 
 ```bash
 docker build -t revenz/fileflows:optimized .

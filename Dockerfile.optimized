@@ -25,10 +25,14 @@ RUN apt-get update && \
         sudo tzdata wget ca-certificates gnupg curl tar xz-utils openssl locales \
         libfontconfig1 libfreetype6 pciutils vainfo git \
         libssl3 libicu78 libavformat62 libavcodec62 libswscale9 \
-        mesa-va-drivers intel-media-va-driver-non-free i965-va-driver-shaders \
-        libvpl2 libmfx-gen1.2 intel-opencl-icd \
+        mesa-va-drivers \
         mkvtoolnix p7zip-full unrar nano \
         aspnetcore-runtime-10.0 && \
+    if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+        apt-get install -y --no-install-recommends \
+            intel-media-va-driver-non-free i965-va-driver-shaders \
+            libvpl2 libmfx-gen1.2 intel-opencl-icd; \
+    fi && \
     ln -s /usr/lib/dotnet /dotnet && \
     # Remove Canonical rockcraft pebble daemon to eliminate Go stdlib CVEs
     rm -f /usr/bin/pebble && \

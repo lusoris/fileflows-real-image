@@ -1,0 +1,164 @@
+name: Build and Release Real Image
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Check upstream Docker Hub every 6 hours
+  push:
+    branches:
+      - main
+    paths:
+      - 'Dockerfile'
+      - 'Dockerfile.optimized'
+      - '.github/workflows/**'
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force build and release regardless of digest change'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check upstream Docker Hub image digest
+        id: check-upstream
+        run: |
+          echo "Fetching upstream digest for revenz/fileflows:latest..."
+          UPSTREAM_JSON=$(curl -s -f "https://hub.docker.com/v2/repositories/revenz/fileflows/tags/latest")
+          UPSTREAM_DIGEST=$(echo "$UPSTREAM_JSON" | jq -r '.digest // empty')
+
+          if [ -z "$UPSTREAM_DIGEST" ]; then
+            echo "Failed to fetch upstream digest from Docker Hub API, checking via buildx..."
+            UPSTREAM_DIGEST=$(docker buildx imagetools inspect --raw revenz/fileflows:latest 2>/dev/null | sha256sum | awk '{print "sha256:"$1}')
+          fi
+
+          echo "Upstream digest: $UPSTREAM_DIGEST"
+          echo "upstream_digest=$UPSTREAM_DIGEST" >> $GITHUB_OUTPUT
+
+          PREV_DIGEST=""
+          if [ -f .upstream_digest ]; then
+            PREV_DIGEST=$(cat .upstream_digest | tr -d '[:space:]')
+          fi
+          echo "Previous recorded digest: $PREV_DIGEST"
+
+          SHOULD_BUILD=false
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force_build }}" = "true" ]; then
+            echo "Force build requested via workflow_dispatch."
+            SHOULD_BUILD=true
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            echo "Build triggered by push to main."
+            SHOULD_BUILD=true
+          elif [ "$UPSTREAM_DIGEST" != "$PREV_DIGEST" ]; then
+            echo "Upstream digest changed ($UPSTREAM_DIGEST != $PREV_DIGEST). Triggering build."
+            SHOULD_BUILD=true
+          else
+            echo "Upstream digest is unchanged. Skipping build."
+          fi
+
+          echo "should_build=$SHOULD_BUILD" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU (multi-architecture)
+        if: steps.check-upstream.outputs.should_build == 'true'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: steps.check-upstream.outputs.should_build == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        if: steps.check-upstream.outputs.should_build == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract FileFlows version from upstream image
+        if: steps.check-upstream.outputs.should_build == 'true'
+        id: version-extractor
+        run: |
+          docker pull revenz/fileflows:latest
+          FULL_VER=$(docker run --rm --entrypoint /bin/sh revenz/fileflows:latest -c "grep -a -o '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+' /app/Server/FileFlows.Server.dll | head -n 1")
+          if [ -z "$FULL_VER" ]; then
+            FULL_VER="latest"
+            SHORT_VER="latest"
+          else
+            SHORT_VER=$(echo "$FULL_VER" | cut -d'.' -f1-3)
+          fi
+          echo "Detected Full Version: $FULL_VER"
+          echo "Detected Short Version: $SHORT_VER"
+          echo "full_version=$FULL_VER" >> $GITHUB_OUTPUT
+          echo "short_version=$SHORT_VER" >> $GITHUB_OUTPUT
+
+      - name: Build and Push to GHCR (multi-platform)
+        if: steps.check-upstream.outputs.should_build == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.short_version }}
+            ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.full_version }}
+          labels: |
+            org.opencontainers.image.title=FileFlows Real Image
+            org.opencontainers.image.description=Hardened production image built from upstream revenz/fileflows
+            org.opencontainers.image.version=${{ steps.version-extractor.outputs.full_version }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=EUPL-1.2
+            org.opencontainers.image.upstream-digest=${{ steps.check-upstream.outputs.upstream_digest }}
+
+      - name: Update recorded upstream digest in git
+        if: steps.check-upstream.outputs.should_build == 'true' && steps.check-upstream.outputs.upstream_digest != ''
+        run: |
+          echo "${{ steps.check-upstream.outputs.upstream_digest }}" > .upstream_digest
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .upstream_digest
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore(auto): record upstream digest ${{ steps.check-upstream.outputs.upstream_digest }}" && git push origin main)
+
+      - name: Create GitHub Release
+        if: steps.check-upstream.outputs.should_build == 'true' && steps.version-extractor.outputs.full_version != 'latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_TAG="v${{ steps.version-extractor.outputs.full_version }}"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release tag $RELEASE_TAG already exists, appending run number..."
+            RELEASE_TAG="v${{ steps.version-extractor.outputs.full_version }}-build.${{ github.run_number }}"
+          fi
+
+          gh release create "$RELEASE_TAG" \
+            --title "Release $RELEASE_TAG" \
+            --notes "## FileFlows Real Image $RELEASE_TAG
+
+          Automated production-ready release built from upstream \`revenz/fileflows:latest\`.
+
+          - **FileFlows Version**: \`${{ steps.version-extractor.outputs.full_version }}\`
+          - **Upstream Digest**: \`${{ steps.check-upstream.outputs.upstream_digest }}\`
+          - **Base Operating System**: Ubuntu 26.04 (Resolute) with zero base CVEs
+          - **Supported Platforms**: \`linux/amd64\`, \`linux/arm64\`
+          - **License**: [EUPL-1.2](https://github.com/${{ github.repository }}/blob/main/LICENSE)
+
+          ### Pull Image
+          \`\`\`bash
+          docker pull ghcr.io/${{ github.repository }}:latest
+          docker pull ghcr.io/${{ github.repository }}:${{ steps.version-extractor.outputs.short_version }}
+          \`\`\`"
