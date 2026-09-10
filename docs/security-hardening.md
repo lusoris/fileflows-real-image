@@ -77,3 +77,13 @@ Media processing pipelines spawn external processes (e.g. `ffmpeg`, `ffprobe`, `
 Adding `init: true` to your Docker Compose file instructs Docker to inject a lightweight init process (tini) as PID 1:
 - Immediately reaps terminated transcode processes.
 - Forwards `SIGTERM` and `SIGINT` signals cleanly, allowing FileFlows to flush databases and shutdown gracefully within seconds.
+
+---
+
+## 5. Dynamic Remediation & Upstream Decoupling
+
+FileFlows Real Image decouples its hardening pipeline from upstream release state via semantic version negotiation:
+- **Idempotent Assembly Patching**: The build engine inspects NuGet dependencies in `.deps.json` and DLL metadata. If upstream has upgraded an assembly to meet or exceed the target secure version (e.g. `Azure.Identity >= 1.21.0`, `Microsoft.Data.SqlClient >= 5.2.2`, `System.Drawing.Common >= 8.0.0`), the patcher logs `[UPSTREAM CLEAN]` and preserves upstream's clean binaries without downgrading.
+- **Graceful Absence Tolerance**: If an assembly or utility binary is removed by upstream, the patcher and stage copiers skip the missing targets without failing the build.
+- **Zero Release Breaks**: Even if upstream eventually remediates 100% of vulnerabilities and removes runtime package installations, the automated pipeline continues building and shipping the debloated, hardened, flavor-isolated container images seamlessly.
+

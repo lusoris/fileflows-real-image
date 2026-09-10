@@ -59,6 +59,10 @@ It achieves:
 9. **NASA/JPL Power of 10 Compliance**:
    - All code, scripts, Dockerfiles, and test suites must adhere to the adapted [NASA/JPL Power of 10](docs/principles.md) rules.
    - Enforces bounded loops, short functions (<= 60 lines), checked return codes (`set -euo pipefail`), average assertion density >= 2.0 per test, and zero warnings across all linters.
+10. **Dynamic Remediation & Upstream Decoupling**:
+   - All vulnerability patches, assembly updates, and entrypoint neutralizations must be idempotent and conditional.
+   - If upstream upgrades a dependency to meet or exceed the target safe version, or eliminates runtime `apt-get` calls, the build must preserve upstream's clean state without downgrades or failure.
+   - Even if upstream fixes 100% of their base CVEs and runtime bugs, the pipeline must ship the optimized, slimmed, flavor-isolated image automatically with zero release breaks.
 
 ---
 
