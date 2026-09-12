@@ -24,7 +24,8 @@ make build-all           # Build all 5 flavors locally
 
 # Testing & Quality Gates
 make test-docs           # Run doc consistency & link assertions (< 0.1s)
-make test                # Run full pytest suite against local image
+make test                # Run all offline test suites (no container required)
+make test-image          # Run the container assertion suite against the local image
 make lint                # Run Hadolint, Yamllint, and ShellCheck
 
 # Documentation
@@ -37,6 +38,7 @@ make docs-build          # Build MkDocs site with strict validation
 ## 3. Modular Agent Skills & Subagents
 
 Standardized skills are maintained in `.agents/skills/` (mirrored to `.claude/skills/`):
+
 - `/build-flavor [flavor]`: Build target image with size gating.
 - `/test-image [tag]`: Run full container assertion and runtime smoke tests.
 - `/lint-all [--fix]`: Run Hadolint, Yamllint, ShellCheck, pre-commit.
@@ -45,6 +47,7 @@ Standardized skills are maintained in `.agents/skills/` (mirrored to `.claude/sk
 - `/prep-release`: Prepare changelog, verify quality gates, and validate tags.
 
 Review agents in `.claude/agents/`:
+
 - `container-reviewer`: Validates Dockerfile changes against invariants and layer squashing.
 - `docs-reviewer`: Validates markdown links, anchors, and table metrics.
 

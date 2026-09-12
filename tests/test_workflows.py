@@ -25,7 +25,7 @@ class TestGitHubWorkflows:
 
     def test_node24_runtime_enforced(self):
         """Invariant: All GitHub Actions workflows must enforce Node 24 actions runtime."""
-        for wf in WORKFLOWS_DIR.glob("*.yml"):
+        for wf in sorted(WORKFLOWS_DIR.glob("*.yml")) + sorted(WORKFLOWS_DIR.glob("*.yaml")):
             data = yaml.safe_load(wf.read_text(encoding="utf-8"))
             env = data.get("env", {})
             assert env.get("FORCE_JAVASCRIPT_ACTIONS_TO_NODE24") == "true", (
@@ -34,7 +34,7 @@ class TestGitHubWorkflows:
 
     def test_concurrency_groups_configured(self):
         """Assert all workflows configure concurrency groups."""
-        for wf in WORKFLOWS_DIR.glob("*.yml"):
+        for wf in sorted(WORKFLOWS_DIR.glob("*.yml")) + sorted(WORKFLOWS_DIR.glob("*.yaml")):
             data = yaml.safe_load(wf.read_text(encoding="utf-8"))
             concurrency = data.get("concurrency", {})
             assert "group" in concurrency, f"Workflow {wf.name} missing concurrency.group"
@@ -70,8 +70,25 @@ class TestGitHubWorkflows:
                 f"Flavor '{flavor}' has platform mismatch: expected {platforms}, got {flavors_found[flavor]}"
             )
 
+    @staticmethod
+    def _job_step_names(job):
+        """Collect a job's step names, following a local reusable-workflow delegation."""
+        if "uses" in job:
+            # removeprefix, not lstrip: lstrip("./") strips a character set and would
+            # eat the leading dot of ".github".
+            target = job["uses"].split("@")[0].removeprefix("./")
+            called = REPO_ROOT / target
+            assert called.exists(), f"Reusable workflow '{job['uses']}' does not exist at {called}"
+            called_data = yaml.safe_load(called.read_text(encoding="utf-8"))
+            return [
+                step.get("name", "")
+                for called_job in called_data.get("jobs", {}).values()
+                for step in called_job.get("steps", [])
+            ]
+        return [step.get("name", "") for step in job.get("steps", [])]
+
     def test_ci_workflow_quality_gates(self):
-        """Assert ci.yml includes all required static analysis and verification steps."""
+        """Assert ci.yml runs all required static analysis and verification steps."""
         ci_wf = WORKFLOWS_DIR / "ci.yml"
         assert ci_wf.exists()
         data = yaml.safe_load(ci_wf.read_text(encoding="utf-8"))
@@ -80,13 +97,41 @@ class TestGitHubWorkflows:
         assert "lint" in jobs, "ci.yml missing 'lint' job"
         assert "test-and-assert" in jobs, "ci.yml missing 'test-and-assert' job"
 
-        lint_steps = [step.get("name", "") for step in jobs["lint"].get("steps", [])]
+        lint_steps = self._job_step_names(jobs["lint"])
         assert any("Hadolint" in s for s in lint_steps), "Hadolint step missing from ci.yml"
         assert any("Yamllint" in s for s in lint_steps), "Yamllint step missing from ci.yml"
         assert any("Offline Unit" in s or "Consistency" in s for s in lint_steps), (
             "Offline Unit & Consistency test step missing from ci.yml"
         )
         assert any("ShellCheck" in s for s in lint_steps), "ShellCheck step missing from ci.yml"
+        assert any("pre-commit" in s for s in lint_steps), "pre-commit step missing from ci.yml"
+
+    def test_release_is_gated_on_quality_checks(self):
+        """Invariant: no release path may build or push without first clearing the offline gates.
+
+        The scheduled 6-hourly trigger previously reached the build and GHCR push having run
+        no tests at all, because the release workflow was fully independent of CI.
+        """
+        release_wf = WORKFLOWS_DIR / "build-and-release.yml"
+        data = yaml.safe_load(release_wf.read_text(encoding="utf-8"))
+        jobs = data.get("jobs", {})
+
+        release_job = jobs.get("check-and-release")
+        assert release_job is not None, "build-and-release.yml missing 'check-and-release' job"
+
+        needs = release_job.get("needs", [])
+        needs = [needs] if isinstance(needs, str) else needs
+        assert needs, "check-and-release must not run before the quality gates"
+
+        for gate in needs:
+            assert gate in jobs, f"check-and-release needs unknown job '{gate}'"
+            gate_steps = self._job_step_names(jobs[gate])
+            assert gate_steps, f"Gate job '{gate}' runs no steps"
+
+        gating_steps = [s for gate in needs for s in self._job_step_names(jobs[gate])]
+        assert any("Offline Unit" in s or "Consistency" in s for s in gating_steps), (
+            f"Release gate runs no offline test step; gate steps were: {gating_steps}"
+        )
 
     def test_docs_workflow_strict_mode(self):
         """Assert docs.yml executes mkdocs build with --strict."""

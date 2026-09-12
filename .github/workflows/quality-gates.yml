@@ -1,0 +1,60 @@
+name: Offline Quality Gates
+
+# Reusable gate shared by CI and the release pipeline, so a release can never ship
+# code that the pull-request gates would have rejected.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# Deliberately prefixed rather than keyed on github.workflow alone: inside a called
+# workflow github.workflow resolves to the CALLER's name, so reusing the caller's
+# group would make this job wait on the very job that is waiting for it.
+concurrency:
+  group: quality-gates-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  lint:
+    name: Lint & Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run Hadolint (Dockerfile linter)
+        uses: hadolint/hadolint-action@v3.5.0
+        with:
+          dockerfile: Dockerfile
+          config: .hadolint.yaml
+          failure-threshold: error
+          ignore: DL3006,DL3008,DL3015
+
+      - name: Set up Python for Linting & Tests
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Run Yamllint
+        run: |
+          python -m pip install --upgrade pip yamllint
+          yamllint -c .yamllint.yml .
+
+      - name: Run Offline Unit & Consistency Tests with Coverage
+        run: |
+          pip install -r tests/requirements-test.txt
+          make coverage
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          scandir: "./tests"
+
+      - name: Run pre-commit hooks
+        run: |
+          python -m pip install --upgrade pre-commit
+          pre-commit run --all-files --show-diff-on-failure

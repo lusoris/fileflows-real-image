@@ -30,11 +30,11 @@ build-cuda13: ## Build minimal CUDA 13.4 runtime flavor (:cuda13)
 
 test: test-unit ## Run all offline test suites
 
-test-unit: ## Run all offline test suites (docs, dockerfile, workflows, skills, badges, compose, principles)
-	pytest tests/test_docs_consistency.py tests/test_dockerfile.py tests/test_workflows.py tests/test_agent_skills.py tests/test_badges.py tests/test_compose.py tests/test_principles.py -v --tb=short
+test-unit: ## Run every offline test suite (all of tests/ except the live-container suite)
+	pytest tests/ --ignore=tests/test_image.py -v --tb=short
 
-coverage: ## Run offline tests with code coverage report
-	pytest --cov=tests tests/test_docs_consistency.py tests/test_dockerfile.py tests/test_workflows.py tests/test_agent_skills.py tests/test_badges.py tests/test_compose.py tests/test_principles.py
+coverage: ## Run offline tests with production-code coverage report
+	pytest tests/ --ignore=tests/test_image.py --cov=scripts
 
 test-docs: ## Run documentation and anchor consistency tests
 	pytest tests/test_docs_consistency.py -v --tb=short
@@ -46,8 +46,8 @@ test-all: test-unit test-image ## Run offline unit tests followed by live contai
 
 lint: lint-hadolint lint-yaml lint-shell ## Run all linters (Hadolint, Yamllint, ShellCheck)
 
-lint-hadolint: ## Run Hadolint on Dockerfile
-	hadolint --config .hadolint.yaml Dockerfile
+lint-hadolint: ## Run Hadolint on both Dockerfile definitions
+	hadolint --config .hadolint.yaml Dockerfile Dockerfile.optimized
 
 lint-yaml: ## Run Yamllint on YAML files
 	yamllint -c .yamllint.yml .
@@ -62,4 +62,5 @@ docs-build: ## Build documentation site strictly
 	mkdocs build --strict
 
 clean: ## Clean local build artifacts and caches
-	rm -rf build-docs/site .pytest_cache __pycache__ tests/__pycache__
+	rm -rf build-docs/site .pytest_cache __pycache__ tests/__pycache__ scripts/__pycache__ \
+	       htmlcov .coverage .ruff_cache

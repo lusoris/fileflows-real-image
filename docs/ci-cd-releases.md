@@ -11,12 +11,15 @@ Unlike conventional semantic versioning, this project's versioning is anchored d
 $$\text{Release Tag} = \mathbf{v\langle\text{upstream-calver}\rangle\text{-real.}\langle\text{revision}\rangle}$$
 
 **Example**:
+
 - Upstream FileFlows Version: `26.09.2`
 - Initial Real Image Release: `v26.09.2-real.1`
 - Security update or maintenance build for the same upstream release: `v26.09.2-real.2`
 
 ### Container Image Tags
+
 Every build automatically publishes to GitHub Container Registry (`ghcr.io/lusoris/fileflows-real-image`):
+
 - `latest`: The newest stable release.
 - `26.09.2`: The major.minor.patch release of upstream.
 - `26.09.2-real.1`: Immutable tag pinned to the exact downstream build and upstream digest.
@@ -54,17 +57,21 @@ flowchart LR
 ```
 
 ### 1. Linting & Style
+
 - **Hadolint**: Validates Dockerfile against container best practices.
 - **Yamllint**: Enforces clean YAML syntax across workflows and compose specs.
 
 ### 2. Documentation Consistency
+
 - **`tests/test_docs_consistency.py`**: Asserts all markdown hyperlinks resolve, YAML snippets parse, and compose examples stay synchronized with `docker-compose.yml`.
 
 ### 3. Layer Efficiency (Dive)
+
 - Runs `wagoodman/dive` against the built container.
 - CI fails if layer efficiency drops below **90%** (FileFlows Real Image scores **100%**).
 
 ### 4. Image Assertion Suite (`tests/test_image.py`)
+
 - Verifies absence of `pebble`, `dotnet-sdk`, and `-dev` packages.
 - Confirms pre-baking of `intel-media-va-driver-non-free`.
 - Enforces image content size limits (&le; 650 MB).

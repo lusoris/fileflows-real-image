@@ -23,38 +23,7 @@ permissions:
 jobs:
   lint:
     name: Lint & Static Analysis
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Run Hadolint (Dockerfile linter)
-        uses: hadolint/hadolint-action@v3.5.0
-        with:
-          dockerfile: Dockerfile
-          config: .hadolint.yaml
-          failure-threshold: error
-          ignore: DL3006,DL3008,DL3015
-
-      - name: Set up Python for Linting & Tests
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.13"
-
-      - name: Run Yamllint
-        run: |
-          python -m pip install --upgrade pip yamllint
-          yamllint -c .yamllint.yml .
-
-      - name: Run Offline Unit & Consistency Tests with Coverage
-        run: |
-          pip install -r tests/requirements-test.txt
-          make coverage
-
-      - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@2.0.0
-        with:
-          scandir: "./tests"
+    uses: ./.github/workflows/quality-gates.yml
 
   test-and-assert:
     name: Container Build & Assertion Suite
@@ -97,6 +66,49 @@ jobs:
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
             wagoodman/dive:latest --ci --lowestEfficiency 0.90 ghcr.io/lusoris/fileflows-real-image:latest
 
+  arm64-assert:
+    name: arm64 Build & Architectural Assertions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up QEMU (arm64 emulation)
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build 'all' flavor for linux/arm64
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          build-args: FLAVOR=all
+          platforms: linux/arm64
+          tags: ghcr.io/lusoris/fileflows-real-image:arm64-ci
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tests/requirements-test.txt
+
+      # Architectural invariants only: the runtime smoke test is impractical under
+      # QEMU emulation, but the arm64 image is published, so it must be asserted.
+      - name: Run architectural assertions against the arm64 image
+        env:
+          TEST_IMAGE: ghcr.io/lusoris/fileflows-real-image:arm64-ci
+        run: |
+          pytest tests/test_image.py::TestArchitecturalInvariants -v --tb=short
+
   security-scan:
     name: Zero-CVE Security Scan (Trivy)
     runs-on: ubuntu-latest
@@ -123,8 +135,14 @@ jobs:
           image-ref: "ghcr.io/lusoris/fileflows-real-image:latest"
           format: "table"
           exit-code: "1"
-          ignore-unfixed: true
-          vuln-type: "os"
+          # ignore-unfixed is deliberately off. CVE-2025-6965 (bundled SQLite) carries no
+          # "fixed" version in the vulnerability DB, so it was invisible both to an OS-only
+          # scan and to an unfixed-suppressing one. The image is clean under this strictest
+          # setting; add a scoped .trivyignore entry if an unfixable OS CVE ever appears.
+          ignore-unfixed: false
+          # os,library: an OS-only scan cannot see .NET dependency CVEs, so the image
+          # could ship a HIGH in a NuGet package while this gate reported clean.
+          vuln-type: "os,library"
           severity: "CRITICAL,HIGH"
 
   compose-e2e:
@@ -180,6 +198,7 @@ jobs:
     needs:
       - lint
       - test-and-assert
+      - arm64-assert
       - security-scan
       - compose-e2e
     steps:

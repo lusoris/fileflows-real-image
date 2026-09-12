@@ -23,7 +23,9 @@ repos:
   - repo: https://github.com/hadolint/hadolint
     rev: v2.14.0
     hooks:
-      - id: hadolint
+      # hadolint-docker, not hadolint: the plain hook is language "system" and needs the
+      # binary on PATH, which CI runners do not have ("Executable `hadolint` not found").
+      - id: hadolint-docker
         args: ["--config", ".hadolint.yaml"]
 
   - repo: https://github.com/adrienverge/yamllint
@@ -42,6 +44,15 @@ repos:
     hooks:
       - id: codespell
         additional_dependencies: [tomli]
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.45.0
+    hooks:
+      - id: markdownlint
+        args: ["--config", ".markdownlint.json"]
+        # Excluded: generated site output, GitHub form templates (intentionally start at
+        # h2) and agent definition files (frontmatter + prose, not documents).
+        exclude: '^(build-docs/|\.github/(copilot-instructions\.md|PULL_REQUEST_TEMPLATE\.md|ISSUE_TEMPLATE/)|\.claude/)'
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.0

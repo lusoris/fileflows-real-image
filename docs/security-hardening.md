@@ -26,6 +26,7 @@ Because FileFlows Real Image uses rootfs squashing (`FROM scratch COPY --from=ba
 ## 2. Base Operating System Hardening
 
 ### Snap Pinning (`nosnap.pref`)
+
 To prevent Canonical snapd daemon installation from pulling in large background daemons or kernel dependencies, `/etc/apt/preferences.d/nosnap.pref` pins `snapd` to priority `-10`:
 
 ```text
@@ -35,6 +36,7 @@ Pin-Priority: -10
 ```
 
 ### Attack Surface Minimization
+
 - **Purged Utilities**: Removed `git`, `nano`, `gnupg`, and compiler tools (`gcc`, `g++`, `make`).
 - **Stripped SUID/SGID Bits**: Executed `chmod a-s` recursively across all binaries to mitigate local privilege escalation risks.
 - **Stripped Localization**: Removed non-English locales (`/usr/share/locale`) and manual pages (`/usr/share/man`, `/usr/share/doc`).
@@ -62,6 +64,7 @@ services:
 ```
 
 ### Why These Specific Capabilities?
+
 - `cap_drop: [ALL]`: Strips all 40+ Linux capabilities, preventing raw socket manipulation, kernel module loading, and device node creation.
 - `CHOWN`: Required by upstream's `docker-entrypoint.sh` to fix volume permissions.
 - `SETUID` & `SETGID`: Required for the container entrypoint to transition execution to the unprivileged `PUID`/`PGID` user.
@@ -75,6 +78,7 @@ services:
 Media processing pipelines spawn external processes (e.g. `ffmpeg`, `ffprobe`, `mediainfo`). If a transcode job is cancelled or crashes, orphan child processes can become zombies if PID 1 does not reap them.
 
 Adding `init: true` to your Docker Compose file instructs Docker to inject a lightweight init process (tini) as PID 1:
+
 - Immediately reaps terminated transcode processes.
 - Forwards `SIGTERM` and `SIGINT` signals cleanly, allowing FileFlows to flush databases and shutdown gracefully within seconds.
 
@@ -83,7 +87,7 @@ Adding `init: true` to your Docker Compose file instructs Docker to inject a lig
 ## 5. Dynamic Remediation & Upstream Decoupling
 
 FileFlows Real Image decouples its hardening pipeline from upstream release state via semantic version negotiation:
-- **Idempotent Assembly Patching**: The build engine inspects NuGet dependencies in `.deps.json` and DLL metadata. If upstream has upgraded an assembly to meet or exceed the target secure version (e.g. `Azure.Identity >= 1.21.0`, `Microsoft.Data.SqlClient >= 5.2.2`, `System.Drawing.Common >= 8.0.0`), the patcher logs `[UPSTREAM CLEAN]` and preserves upstream's clean binaries without downgrading.
+
+- **Idempotent Assembly Patching**: The build engine inspects NuGet dependencies in `.deps.json` and DLL metadata. If upstream has upgraded an assembly to meet or exceed the target secure version (e.g. `Azure.Identity >= 1.11.4`, `Microsoft.Data.SqlClient >= 3.1.5`, `System.Drawing.Common >= 4.7.2`), the patcher logs `[UPSTREAM CLEAN]` and preserves upstream's clean binaries without downgrading. The bar is the advisory's published fixed version for the assembly's own major line rather than the newest release, so an assembly that is already patched is never swapped for a newer one it was not built and tested against.
 - **Graceful Absence Tolerance**: If an assembly or utility binary is removed by upstream, the patcher and stage copiers skip the missing targets without failing the build.
 - **Zero Release Breaks**: Even if upstream eventually remediates 100% of vulnerabilities and removes runtime package installations, the automated pipeline continues building and shipping the debloated, hardened, flavor-isolated container images seamlessly.
-

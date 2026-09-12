@@ -7,7 +7,7 @@ You are an AI programming assistant working on **FileFlows Real Image** (`filefl
 Whenever suggesting code, reviewing diffs, or editing configuration files, you must strictly preserve these invariants:
 
 1. **Self-Contained Builds**:
-   - Upstream assets are extracted exclusively using `COPY --from=upstream` or build stages in [Dockerfile](Dockerfile).
+   - Upstream assets are extracted exclusively using `COPY --from=upstream` or build stages in [Dockerfile](../Dockerfile).
    - Never rely on local extracted files (`app/`, `docker-bin/`) or host-side scripts.
 2. **Zero Base CVEs & Rootfs Squashing**:
    - The Canonical Rockcraft `pebble` binary (`/usr/bin/pebble`) and directories (`/var/lib/pebble`, `/etc/pebble`) are purged.
@@ -25,7 +25,7 @@ Whenever suggesting code, reviewing diffs, or editing configuration files, you m
    - `:cuda13` must install **only** minimal video filter essentials (`cuda-nvrtc-13-4`, `cuda-cudart-13-4`, `libnpp-13-4`). Never install `libcublas`, `libcusolver`, `libcusparse`, `libcufft`, `libcurand`, or `cuda-compat`.
    - `:amd` must use **Mesa Gallium VA-API + Vulkan RADV** (`mesa-libgallium`, `mesa-vulkan-drivers`). Never install ROCm compute SDKs for video transcoding.
 7. **Dockerfile Synchronization**:
-   - [Dockerfile](Dockerfile) and [Dockerfile.optimized](Dockerfile.optimized) must remain 100% byte-identical.
+   - [Dockerfile](../Dockerfile) and [Dockerfile.optimized](../Dockerfile.optimized) must remain 100% byte-identical.
 
 ## Flavor Matrix
 

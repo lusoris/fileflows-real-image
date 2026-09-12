@@ -16,26 +16,37 @@ Executes all repository static analysis tools, linters, format checks, and docum
 ## Steps
 
 1. **Dockerfile Linting**:
+
    ```bash
    hadolint --config .hadolint.yaml Dockerfile
    ```
+
 2. **YAML Formatting & Linting**:
+
    ```bash
    yamllint -c .yamllint.yml .
    ```
+
 3. **Shell Script Verification**:
+
    ```bash
    shellcheck tests/run_tests.sh
    ```
+
 4. **Pre-commit Quality Hooks**:
+
    ```bash
    pre-commit run --all-files
    ```
+
 5. **Documentation & Anchor Consistency**:
+
    ```bash
    pytest tests/test_docs_consistency.py -v --tb=short
    ```
+
 6. **Dockerfile Mirror Alignment**:
+
    ```bash
    cmp -s Dockerfile Dockerfile.optimized || { echo "Drift detected between Dockerfile and Dockerfile.optimized"; exit 1; }
    ```

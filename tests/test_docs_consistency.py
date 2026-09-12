@@ -15,16 +15,35 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
+# Caches and generated output only. Dot-directories are NOT excluded wholesale:
+# .github, .agents and .claude hold real, linked documentation that must be checked.
+EXCLUDED_DIRS = {
+    ".git", ".pytest_cache", ".ruff_cache", ".mypy_cache", ".venv", "venv",
+    "__pycache__", "build-docs", "site", "node_modules", "scratch", "brain",
+    ".workingdir",
+}
+
+
 def get_all_markdown_files():
     """Find all markdown files in the repository excluding build / test caches."""
     md_files = []
     for root, dirs, files in os.walk(REPO_ROOT):
-        # Ignore hidden dirs like .git, .pytest_cache
-        dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("node_modules", "scratch", "brain")]
+        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
         for file in files:
             if file.endswith(".md"):
                 md_files.append(Path(root) / file)
     return md_files
+
+
+def strip_code(content: str) -> str:
+    """Remove fenced blocks and inline code spans before scanning for links.
+
+    Documentation routinely shows markdown syntax inside backticks (for example
+    `[text](path)`); treating those as real links produces false failures.
+    """
+    without_fences = re.sub(r"```[\s\S]*?```", "", content)
+    without_fences = re.sub(r"~~~[\s\S]*?~~~", "", without_fences)
+    return re.sub(r"`[^`\n]*`", "", without_fences)
 
 
 def slugify_heading(heading_text: str) -> str:
@@ -65,8 +84,7 @@ class TestDocsConsistency:
 
         for md_file in md_files:
             content = md_file.read_text(encoding="utf-8", errors="ignore")
-            # Exclude code blocks when searching for links
-            content_without_code = re.sub(r"```[\s\S]*?```", "", content)
+            content_without_code = strip_code(content)
 
             for match in link_pattern.finditer(content_without_code):
                 target = match.group(2).strip()
@@ -112,12 +130,12 @@ class TestDocsConsistency:
 
         for md_file in md_files:
             content = md_file.read_text(encoding="utf-8", errors="ignore")
-            # Collect all heading slugs
-            headings = heading_pattern.findall(content)
+            # Collect all heading slugs from the raw text (headings are never in code spans)
+            headings = heading_pattern.findall(re.sub(r"```[\s\S]*?```", "", content))
             heading_slugs = {slugify_heading(h) for h in headings}
 
-            # Find all anchor references
-            for match in anchor_pattern.finditer(content):
+            # Find all anchor references, ignoring illustrative syntax in code spans
+            for match in anchor_pattern.finditer(strip_code(content)):
                 anchor = match.group(2).strip().lower()
                 if anchor not in heading_slugs:
                     broken_anchors.append(

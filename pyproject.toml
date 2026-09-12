@@ -23,11 +23,9 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 
 [tool.coverage.run]
-source = ["tests"]
-omit = [
-    "tests/test_image.py",
-]
+# Measure the production code, not the test suite that exercises it.
+source = ["scripts"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 85
+fail_under = 95
