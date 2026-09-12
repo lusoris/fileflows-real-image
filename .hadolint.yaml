@@ -4,3 +4,6 @@ ignored:
   - DL3008  # Pin versions in apt-get install (base security updates must pull latest patched versions)
   - DL3015  # Avoid additional packages by specifying --no-install-recommends (already specified)
   - DL4006  # Set the SHELL option -o pipefail before RUN with a pipe (base64 inline decode)
+  # Deliberate constructs, flagged from hadolint 2.15 onwards:
+  - DL3067  # COPY --from=base-selected / / is the rootfs squashing invariant (asserted by tests)
+  - DL3025  # HEALTHCHECK needs shell form for its curl `||` fallback chain

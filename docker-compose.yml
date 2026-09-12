@@ -4,7 +4,7 @@ services:
     #   ghcr.io/lusoris/fileflows-real-image:latest  - Universal default (Intel + AMD + NVIDIA runtimes)
     #   ghcr.io/lusoris/fileflows-real-image:intel   - Intel QuickSync & Arc optimized (514MB)
     #   ghcr.io/lusoris/fileflows-real-image:amd     - AMD Radeon & Ryzen APU optimized (473MB)
-    #   ghcr.io/lusoris/fileflows-real-image:cuda    - Host-based NVIDIA acceleration for NVENC/NVDEC (470MB)
+    #   ghcr.io/lusoris/fileflows-real-image:cuda    - Host-based NVIDIA acceleration for NVENC/NVDEC (394MB)
     #   ghcr.io/lusoris/fileflows-real-image:cuda13  - Minimal NVIDIA CUDA 13.4 runtime with video filters (720MB)
     image: ghcr.io/lusoris/fileflows-real-image:latest
     container_name: fileflows
@@ -23,6 +23,18 @@ services:
       - fileflows-common:/common
       # Uncomment and adjust to map your media library:
       # - /path/to/media:/media
+    # Optional Hardware Acceleration - uncomment the block you need.
+    # Intel / AMD VA-API / QSV:
+    # devices:
+    #   - /dev/dri:/dev/dri
+    # NVIDIA GPU:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -32,18 +44,6 @@ services:
       - SETUID
       - SETGID
       - DAC_OVERRIDE
-      # Optional Hardware Acceleration:
-      # Intel / AMD VA-API / QSV:
-      # devices:
-      #   - /dev/dri:/dev/dri
-      # NVIDIA GPU:
-      # deploy:
-      #   resources:
-      #     reservations:
-      #       devices:
-      #         - driver: nvidia
-      #           count: all
-      #           capabilities: [gpu]
 
 volumes:
   fileflows-data:

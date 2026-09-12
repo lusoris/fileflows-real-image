@@ -4,23 +4,25 @@ Answers to common questions regarding **FileFlows Real Image**, compatibility, s
 
 ---
 
-### Can I run the container with a read-only root filesystem (`read_only: true`)?
+## Can I run the container with a read-only root filesystem (`read_only: true`)?
 
 **No, not with the current upstream entrypoint.**
 
 During our hardening benchmarks, we tested `read_only: true`. Upstream's `docker-entrypoint.sh` performs several runtime rootfs modifications on startup:
+
 1. It executes `useradd` and `groupadd` to dynamically configure the user matching `PUID`/`PGID`.
 2. It attempts `dpkg --configure -a`.
 3. It writes startup diagnostic logs directly to `/app/startup.log`.
 
 Running with `read_only: true` causes the entrypoint to fail immediately. Instead, we achieve equivalent runtime security by enforcing:
+
 - `security_opt: [no-new-privileges:true]`
 - `cap_drop: [ALL]` with minimal `cap_add: [CHOWN, SETUID, SETGID, DAC_OVERRIDE]`
 - `init: true`
 
 ---
 
-### Why retain FFmpeg shared libraries (`libavcodec62`, etc.) instead of static binaries?
+## Why retain FFmpeg shared libraries (`libavcodec62`, etc.) instead of static binaries?
 
 Upstream FileFlows includes dynamic P/Invoke C# interop bindings and plugin components that dynamically load shared multimedia libraries (`libavcodec.so`, `libavformat.so`, `libswscale.so`, `libvpl.so`).
 
@@ -28,7 +30,7 @@ By replacing upstream's bloated `-dev` header packages with only the lean runtim
 
 ---
 
-### Will custom FileFlows C# scripts and plugins still work without the .NET SDK?
+## Will custom FileFlows C# scripts and plugins still work without the .NET SDK?
 
 **Yes.**
 
@@ -36,7 +38,7 @@ In .NET 10, dynamic runtime script compilation (Roslyn compiler-as-a-service) us
 
 ---
 
-### Why was `pebble` removed from the image?
+## Why was `pebble` removed from the image?
 
 Canonical's Rockcraft toolchain bakes the `pebble` service daemon into base images to facilitate process supervision in Charmed Kubernetes operators.
 
@@ -44,7 +46,7 @@ FileFlows is a standalone application that manages its own background workers an
 
 ---
 
-### Where should I report bugs?
+## Where should I report bugs?
 
 - **Image build errors, CVEs, or docker packaging issues**: Report on [GitHub Issues](https://github.com/lusoris/fileflows-real-image/issues).
 - **FileFlows UI, node communication, or transcoding flow bugs**: Report to upstream at [revenz/FileFlows](https://github.com/revenz/FileFlows).

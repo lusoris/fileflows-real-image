@@ -47,15 +47,19 @@ flowchart TD
 ```
 
 ### Stage 1: `app-source`
+
 - Sources `/app` and `/docker-bin` directly from upstream.
 - Executes runtime pruning:
+
   ```bash
   find /app -type d -name "win*" -exec rm -rf {} +
   find /app -type d -name "osx*" -exec rm -rf {} +
   ```
+
 - Strips Windows DLLs that trigger security scanner false positives.
 
 ### Stage 2: `base-builder`
+
 - Builds a lean Ubuntu 26.04 foundation.
 - Configures `/etc/apt/preferences.d/nosnap.pref` to prevent `snapd` installation.
 - Installs `aspnetcore-runtime-10.0` instead of the SDK.
@@ -66,6 +70,7 @@ flowchart TD
 - Completely deletes any pebble traces: `/usr/bin/pebble`, `/var/lib/pebble`.
 
 ### Stage 3: `production` (Rootfs Flattening)
+
 - Uses `FROM scratch` and copies the entire rootfs from `base-builder` (`COPY --from=base-builder / /`).
 - This guarantees:
   - **Single Squashed Layer**: 100% layer efficiency score in `dive`.

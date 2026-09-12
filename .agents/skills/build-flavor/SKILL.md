@@ -14,6 +14,7 @@ Builds hardened FileFlows container images locally with full architectural invar
 ```
 
 Flavors:
+
 - `all` (default / `:latest`): Universal multi-vendor image (Intel QuickSync + AMD Mesa Gallium + NVIDIA host driver hooks)
 - `intel` (`:intel`): Intel Core Gen 8–14+, Arc Alchemist/Battlemage (`intel-media-va-driver-non-free`, Level Zero, oneVPL)
 - `amd` (`:amd`): AMD Radeon RX 5000–8000, Ryzen APUs (`mesa-libgallium` VA-API, RADV Vulkan)
@@ -23,10 +24,13 @@ Flavors:
 ## Steps
 
 1. Verify `Dockerfile` and `Dockerfile.optimized` are byte-identical:
+
    ```bash
    cmp -s Dockerfile Dockerfile.optimized || { echo "ERROR: Dockerfiles drifted!"; exit 1; }
    ```
+
 2. Build target flavor:
+
    ```bash
    # Single flavor (e.g. intel)
    docker build -t ghcr.io/lusoris/fileflows-real-image:intel --build-arg FLAVOR=intel .
@@ -34,10 +38,13 @@ Flavors:
    # Or via make
    make build-intel
    ```
+
 3. Inspect virtual size:
+
    ```bash
    docker image inspect ghcr.io/lusoris/fileflows-real-image:intel --format '{{.Size}}' | awk '{printf "Virtual Size: %.2f GB\n", $1/1073741824}'
    ```
+
 4. Verify size gate:
    - Host-based flavors (`all`, `intel`, `amd`, `cuda`): <= 2.5 GB virtual size
    - Minimal CUDA 13 flavor (`cuda13`): <= 3.5 GB virtual size

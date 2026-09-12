@@ -6,6 +6,7 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TESTS_DIR = REPO_ROOT / "tests"
+SCRIPTS_DIR = REPO_ROOT / "scripts"
 DOCS_DIR = REPO_ROOT / "docs"
 COMPOSE_FILE = REPO_ROOT / "docker-compose.yml"
 
@@ -25,29 +26,44 @@ class TestNASAPowerOfTen:
             )
 
     def test_rule2_bounded_polling_loops(self):
-        """Rule 2: Any polling/retry loop in test suites must have a static upper bound."""
+        """Rule 2: Every loop must carry a statically provable upper bound."""
         test_image_file = TESTS_DIR / "test_image.py"
-        assert test_image_file.exists()
-        content = test_image_file.read_text(encoding="utf-8")
+        assert test_image_file.exists(), "tests/test_image.py must exist"
 
-        # Invariant: range-based bounded wait loop in runtime smoke test
-        assert "for _ in range(" in content, "Polling loop must use bounded range loop."
-        assert "while True:" not in content, "Unbounded 'while True' loops are strictly prohibited."
+        unbounded = []
+        bounded_polls = 0
+        for py_file in sorted(TESTS_DIR.glob("test_*.py")) + sorted(SCRIPTS_DIR.glob("*.py")):
+            tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.While):
+                    # Only `while <literal-false-able>` is acceptable; `while True` never terminates
+                    # by its own condition, so the bound would live outside the loop construct.
+                    unbounded.append(f"{py_file.name}:{node.lineno} while-loop without a static bound")
+                if isinstance(node, ast.For) and isinstance(node.iter, ast.Call):
+                    if getattr(node.iter.func, "id", None) == "range" and py_file == test_image_file:
+                        bounded_polls += 1
+
+        assert not unbounded, "Unbounded loops are strictly prohibited (Rule 2):\n" + "\n".join(unbounded)
+        assert bounded_polls > 0, "Runtime smoke test must poll via a bounded range() loop."
 
     def test_rule4_short_functions(self):
-        """Rule 4: Function bodies in test suites must not exceed 60 lines."""
-        long_functions = []
+        """Rule 4: Every function, in test suites and production scripts alike, stays <= 60 lines."""
+        python_files = sorted(TESTS_DIR.glob("test_*.py")) + sorted(SCRIPTS_DIR.glob("*.py"))
+        assert python_files, "Expected Python sources under tests/ and scripts/"
+        assert any(f.parent == SCRIPTS_DIR for f in python_files), (
+            "Production scripts must be in scope for Rule 4, not only the test suite"
+        )
 
-        for py_file in TESTS_DIR.glob("test_*.py"):
+        long_functions = []
+        for py_file in python_files:
             tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
             for node in ast.walk(tree):
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     lines = node.end_lineno - node.lineno + 1
-                    # Skip test_container_startup_and_web_ui if it's an end-to-end orchestration block
-                    if lines > 60 and node.name != "test_container_startup_and_web_ui":
+                    if lines > 60:
                         long_functions.append(f"{py_file.name}::{node.name} ({lines} lines > 60 limit)")
 
-        assert not long_functions, f"Functions exceeding 60-line bound (Rule 4):\n" + "\n".join(long_functions)
+        assert not long_functions, "Functions exceeding 60-line bound (Rule 4):\n" + "\n".join(long_functions)
 
     def test_rule5_assertion_density(self):
         """Rule 5: Average assertion density across all test functions must be >= 2.0."""

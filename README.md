@@ -12,7 +12,7 @@
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Project-F16061?logo=ko-fi&logoColor=white)](https://ko-fi.com/lusoris)
 [![License: EUPL 1.2](https://img.shields.io/badge/License-EUPL%201.2-blue.svg)](LICENSE)
 
-> A hardened, zero-CVE, production-ready multi-stage container for [FileFlows](https://fileflows.com) that slashes image size by 43%, eliminates base vulnerabilities, and boots in under 1 second.
+> A hardened, zero-CVE, production-ready multi-stage container for [FileFlows](https://fileflows.com) that slashes image size by 42.5%, eliminates base vulnerabilities, and boots in under 1 second.
 
 Complete documentation is available at **[lusoris.github.io/fileflows-real-image](https://lusoris.github.io/fileflows-real-image/)**.
 
@@ -36,7 +36,7 @@ The upstream container (`revenz/fileflows:latest`, upstream version `26.09.2`) i
 | :--- | :--- | :--- | :--- |
 | **Content Size** | **999 MB** | **574 MB** | **-425 MB (-42.5%)** |
 | **Virtual Disk Usage** | **3.57 GB** | **2.00 GB** | **-1.57 GB (-44.0%)** |
-| **Installed Packages** | 1,354 packages | 615 packages | **-739 packages (-54.6%)** |
+| **Installed Packages** | 361 packages | 281 packages | **-80 packages (-22.2%)** |
 | **Base Image CVEs** | 1 Critical, 5 High, 2 Medium | **0 Critical, 0 High, 0 Medium** | **100% Resolved** |
 | **Startup Delay** | 15–20s (`apt-get` on boot) | **< 1 second** (`already installed`) | **Instant Startup** |
 | **Layer Efficiency** | ~75% (repeated layer writes) | **100% (Single squashed layer)** | **Maximum Density** |
@@ -55,7 +55,7 @@ services:
     #   ghcr.io/lusoris/fileflows-real-image:latest  - Universal default (Intel + AMD + NVIDIA runtimes)
     #   ghcr.io/lusoris/fileflows-real-image:intel   - Intel QuickSync & Arc optimized (514MB)
     #   ghcr.io/lusoris/fileflows-real-image:amd     - AMD Radeon & Ryzen APU optimized (473MB)
-    #   ghcr.io/lusoris/fileflows-real-image:cuda    - Host-based NVIDIA acceleration for NVENC/NVDEC (470MB)
+    #   ghcr.io/lusoris/fileflows-real-image:cuda    - Host-based NVIDIA acceleration for NVENC/NVDEC (394MB)
     #   ghcr.io/lusoris/fileflows-real-image:cuda13  - Minimal NVIDIA CUDA 13.4 runtime with video filters (720MB)
     image: ghcr.io/lusoris/fileflows-real-image:latest
     container_name: fileflows
@@ -119,7 +119,7 @@ FileFlows Real Image is published in 5 specialized, vendor-optimized flavors:
 | :--- | :--- | :--- | :--- | :--- |
 | **`:intel`** | Intel Arc Alchemist/Battlemage, Core Gen 8–14+, N-series | **514 MB** | **1.76 GB** | Intel Media Driver (iHD 26.1+), Level Zero (`libze`), oneVPL, OpenCL ICD |
 | **`:amd`** | AMD Radeon RX 5000–8000 series, Ryzen 6000–9000 APUs | **473 MB** | **1.65 GB** | Mesa Gallium (`radeonsi`), RADV Vulkan, AMDGPU DRM |
-| **`:cuda`** | NVIDIA Pascal through Ada Lovelace (Host-based CUDA) | **473 MB** | **1.65 GB** | Host-injected driver hooks (`libcuda`, NVENC, NVDEC) with zero package bloat |
+| **`:cuda`** | NVIDIA Pascal through Ada Lovelace (Host-based CUDA) | **394 MB** | **1.27 GB** | Host-injected driver hooks (`libcuda`, NVENC, NVDEC) with zero package bloat |
 | **`:cuda13`** | NVIDIA Ada Lovelace, Blackwell (RTX 50xx), Hopper (CUDA 13.4) | **720 MB** | **2.33 GB** | Minimal NVIDIA CUDA 13.4 runtime + NVRTC & NPP video filters |
 | **`:latest`** | Universal default (Intel + AMD + NVIDIA hooks) | **574 MB** | **2.00 GB** | Full Intel Media Driver, Mesa Gallium VA-API, and NVIDIA host driver hooks |
 

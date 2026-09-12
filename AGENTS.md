@@ -25,6 +25,7 @@ These rules apply unconditionally to all agents, all tools, and all commits:
 `fileflows-real-image` produces clean, hardened, production-ready multi-stage OCI container images for [FileFlows](https://fileflows.com) directly from the bloated upstream release (`revenz/fileflows:latest`).
 
 It achieves:
+
 - **Zero Base CVEs**: 100% elimination of base-image vulnerabilities (including the Canonical Rockcraft `pebble` Go stdlib CVEs).
 - **Instant Boot (< 1s)**: Hardware acceleration drivers are baked in at build time; runtime `apt-get` calls in entrypoints are neutralized.
 - **Slashed Footprint**: Image content size drops from 999 MB to **470–720 MB**; virtual disk usage is cut by **45–72%**.
@@ -60,9 +61,10 @@ It achieves:
    - All code, scripts, Dockerfiles, and test suites must adhere to the adapted [NASA/JPL Power of 10](docs/principles.md) rules.
    - Enforces bounded loops, short functions (<= 60 lines), checked return codes (`set -euo pipefail`), average assertion density >= 2.0 per test, and zero warnings across all linters.
 10. **Dynamic Remediation & Upstream Decoupling**:
-   - All vulnerability patches, assembly updates, and entrypoint neutralizations must be idempotent and conditional.
-   - If upstream upgrades a dependency to meet or exceed the target safe version, or eliminates runtime `apt-get` calls, the build must preserve upstream's clean state without downgrades or failure.
-   - Even if upstream fixes 100% of their base CVEs and runtime bugs, the pipeline must ship the optimized, slimmed, flavor-isolated image automatically with zero release breaks.
+
+- All vulnerability patches, assembly updates, and entrypoint neutralizations must be idempotent and conditional.
+- If upstream upgrades a dependency to meet or exceed the target safe version, or eliminates runtime `apt-get` calls, the build must preserve upstream's clean state without downgrades or failure.
+- Even if upstream fixes 100% of their base CVEs and runtime bugs, the pipeline must ship the optimized, slimmed, flavor-isolated image automatically with zero release breaks.
 
 ---
 
@@ -154,6 +156,7 @@ This repository implements standardized skills under `.agents/skills/` (compatib
 ## 6. Build & Test Commands
 
 ### Using Make
+
 ```bash
 make help               # Display all available targets
 make build              # Build universal default flavor (:latest / :all)
@@ -162,7 +165,8 @@ make build-intel        # Build Intel flavor (:intel)
 make build-amd          # Build AMD flavor (:amd)
 make build-cuda         # Build host-based CUDA flavor (:cuda)
 make build-cuda13       # Build minimal CUDA 13.4 flavor (:cuda13)
-make test               # Run Pytest suite against local image
+make test               # Run all offline test suites (no container required)
+make test-image         # Run the container assertion suite against the local image
 make test-docs          # Run documentation & anchor consistency tests
 make lint               # Run Hadolint, Yamllint, and ShellCheck
 make format-check       # Verify YAML and Shell formatting
@@ -170,6 +174,7 @@ make docs-serve         # Launch local MkDocs live-reload server
 ```
 
 ### Direct CLI Commands
+
 ```bash
 # Build universal image
 docker build -t ghcr.io/lusoris/fileflows-real-image:latest --build-arg FLAVOR=all .

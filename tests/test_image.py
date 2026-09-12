@@ -20,16 +20,41 @@ import pytest
 
 IMAGE_NAME = os.environ.get("TEST_IMAGE", "ghcr.io/lusoris/fileflows-real-image:latest").strip()
 
+# Exit codes docker reserves for "the command never ran": image/daemon error, not
+# executable, not found. Any of these means an invariant was not actually verified.
+DOCKER_DID_NOT_RUN = (125, 126, 127)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def require_test_image():
+    """Abort the suite rather than let container invariants pass against a missing image."""
+    res = subprocess.run(
+        ["docker", "image", "inspect", IMAGE_NAME],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    assert res.returncode == 0, (
+        f"Test image '{IMAGE_NAME}' is not available locally, so no container invariant "
+        f"can be verified. Build it first (make build) or set TEST_IMAGE. {res.stderr.strip()}"
+    )
+
 
 def run_in_container(cmd: str) -> subprocess.CompletedProcess:
     """Helper to run a shell command inside a temporary instance of the target image."""
-    return subprocess.run(
+    res = subprocess.run(
         ["docker", "run", "--rm", "--entrypoint", "sh", IMAGE_NAME, "-c", cmd],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
         check=False,
     )
+    assert res.returncode not in DOCKER_DID_NOT_RUN, (
+        f"Command never executed in container (exit {res.returncode}); an empty result here "
+        f"would silently satisfy the assertion. cmd={cmd!r} stderr={res.stderr.strip()}"
+    )
+    return res
 
 
 def get_image_flavor() -> str:
@@ -95,13 +120,29 @@ class TestArchitecturalInvariants:
         assert len(installed_dev) == 0, f"Unexpected -dev packages installed: {installed_dev}"
 
     def test_instant_startup_driver_preinstalled(self):
-        """Invariant: Hardware acceleration stack pre-installed based on image flavor."""
+        """Invariant: Hardware acceleration stack pre-installed based on image flavor and arch."""
         flavor = get_image_flavor()
+        arch = run_in_container("dpkg --print-architecture").stdout.strip()
+        assert arch, "Could not determine image architecture"
+
         if flavor in ("all", "intel"):
-            res = run_in_container("dpkg-query -W -f='${Status}' intel-media-va-driver-non-free 2>/dev/null")
-            assert "install ok installed" in res.stdout, (
-                f"intel-media-va-driver-non-free not installed: {res.stdout}"
-            )
+            if arch == "amd64":
+                res = run_in_container("dpkg-query -W -f='${Status}' intel-media-va-driver-non-free 2>/dev/null")
+                assert "install ok installed" in res.stdout, (
+                    f"intel-media-va-driver-non-free not installed: {res.stdout}"
+                )
+            else:
+                # The Intel QSV stack is amd64-only in the Dockerfile. On arm64 the universal
+                # image must still ship Mesa, and must not carry the Intel packages.
+                assert flavor == "all", f"Flavor '{flavor}' is not published for {arch}"
+                res = run_in_container("dpkg-query -W -f='${Status}' mesa-libgallium 2>/dev/null")
+                assert "install ok installed" in res.stdout, (
+                    f"mesa-libgallium not installed on {arch}: {res.stdout}"
+                )
+                intel_res = run_in_container("dpkg-query -W -f='${Status}' intel-media-va-driver-non-free 2>/dev/null")
+                assert "install ok installed" not in intel_res.stdout, (
+                    f"Intel QSV stack must not be installed on {arch}"
+                )
         elif flavor == "amd":
             res = run_in_container("dpkg-query -W -f='${Status}' mesa-libgallium 2>/dev/null")
             assert "install ok installed" in res.stdout, (
@@ -143,6 +184,14 @@ class TestArchitecturalInvariants:
                 for pkg in packages:
                     res = run_in_container(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null")
                     assert "install ok installed" in res.stdout, f"Driver package '{pkg}' missing from image."
+            else:
+                # arm64 universal image: Mesa only, with the amd64-only Intel stack absent.
+                assert flavor == "all", f"Flavor '{flavor}' is not published for {arch}"
+                res = run_in_container("dpkg-query -W -f='${Status}' mesa-libgallium 2>/dev/null")
+                assert "install ok installed" in res.stdout, f"mesa-libgallium missing on {arch}."
+                for pkg in ("libvpl2", "libmfx-gen1.2", "libze-intel-gpu1"):
+                    res = run_in_container(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null")
+                    assert "install ok installed" not in res.stdout, f"'{pkg}' must not be installed on {arch}."
         elif flavor == "amd":
             packages = [
                 "mesa-libgallium",
@@ -168,6 +217,9 @@ class TestArchitecturalInvariants:
             for pkg in bloated_pkgs:
                 res = run_in_container(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null")
                 assert "install ok installed" not in res.stdout, f"Bloated package '{pkg}' should not be installed in host-based CUDA flavor."
+
+        else:
+            raise AssertionError(f"Unrecognised image flavor '{flavor}'; no invariant was verified.")
 
         # Legacy i965 driver (pre-2015 CPUs) is purged across all flavors
         res_i965 = run_in_container("dpkg-query -W -f='${Status}' i965-va-driver-shaders 2>/dev/null")
@@ -245,85 +297,63 @@ class TestRuntimeSmokeAndWebUI:
 
     CONTAINER_NAME = "fileflows-pytest-smoke"
     PORT = 19205
+    READY_TIMEOUT_SECONDS = 25
 
     @classmethod
     def teardown_class(cls):
         """Ensure test container is stopped and removed."""
         subprocess.run(["docker", "rm", "-f", cls.CONTAINER_NAME], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    def test_container_startup_and_web_ui(self):
-        """Assert container starts instantly and serves Web UI with 200 OK."""
-        # Remove any leftover container
-        subprocess.run(["docker", "rm", "-f", self.CONTAINER_NAME], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
+    @classmethod
+    def _launch(cls):
+        """Start the container detached and return how long `docker run` took."""
+        subprocess.run(["docker", "rm", "-f", cls.CONTAINER_NAME], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         start_time = time.time()
-        res = subprocess.run(
-            [
-                "docker",
-                "run",
-                "-d",
-                "--name",
-                self.CONTAINER_NAME,
-                "-p",
-                f"{self.PORT}:5000",
-                "-e",
-                "TZ=UTC",
-                "-e",
-                "PUID=1000",
-                "-e",
-                "PGID=1000",
-                IMAGE_NAME,
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True,
+        subprocess.run(
+            ["docker", "run", "-d", "--name", cls.CONTAINER_NAME, "-p", f"{cls.PORT}:5000",
+             "-e", "TZ=UTC", "-e", "PUID=1000", "-e", "PGID=1000", IMAGE_NAME],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True,
         )
-        launch_duration = time.time() - start_time
-        assert launch_duration < 5.0, f"Container launch took too long: {launch_duration:.2f}s"
+        return time.time() - start_time
 
-        # Poll container until HTTP endpoint responds or timeout (20 seconds)
-        url = f"http://127.0.0.1:{self.PORT}/"
-        web_ok = False
-        final_html = ""
-        entrypoint_checked = False
+    @classmethod
+    def _logs(cls):
+        """Return the container's combined stdout/stderr so far."""
+        res = subprocess.run(["docker", "logs", cls.CONTAINER_NAME],
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
+        return res.stdout
 
-        for _ in range(25):
+    @classmethod
+    def _poll_web_ui(cls):
+        """Poll the Web UI until it answers 200; return (ready_seconds, html)."""
+        url = f"http://127.0.0.1:{cls.PORT}/"
+        for elapsed in range(1, cls.READY_TIMEOUT_SECONDS + 1):
             time.sleep(1)
-            # Check entrypoint logs early
-            if not entrypoint_checked:
-                logs_res = subprocess.run(
-                    ["docker", "logs", self.CONTAINER_NAME],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                )
-                if (
-                    "[FileFlows Real Image]" in logs_res.stdout
-                    or "Hardware acceleration pre-configured" in logs_res.stdout
-                    or "already installed." in logs_res.stdout
-                ):
-                    entrypoint_checked = True
-                    assert "apt-get update" not in logs_res.stdout, (
-                        "Container unexpectedly ran apt-get update on boot!"
-                    )
-
             try:
                 req = urllib.request.Request(url, headers={"User-Agent": "pytest"})
                 with urllib.request.urlopen(req, timeout=3) as resp:
                     if resp.status == 200:
-                        final_html = resp.read().decode("utf-8")
-                        web_ok = True
-                        break
+                        return elapsed, resp.read().decode("utf-8")
             except Exception:
                 continue
+        return None, ""
 
-        # Check entrypoint logs assertion
-        assert entrypoint_checked, "Entrypoint failed to verify pre-configured hardware drivers or Real Image marker."
+    def test_container_startup_and_web_ui(self):
+        """Assert container starts instantly and serves Web UI with 200 OK."""
+        launch_duration = self._launch()
+        assert launch_duration < 5.0, f"Container launch took too long: {launch_duration:.2f}s"
 
-        # Check HTTP response assertion
-        assert web_ok, f"Web UI did not return HTTP 200 within timeout on {url}"
+        ready_seconds, final_html = self._poll_web_ui()
+        assert ready_seconds is not None, (
+            f"Web UI did not return HTTP 200 within {self.READY_TIMEOUT_SECONDS}s. Logs:\n{self._logs()}"
+        )
         assert "<title>FileFlows" in final_html, f"Unexpected page content: {final_html[:300]}"
 
-        # Cleanup
+        # Inspect the whole boot log, not just the first second of it.
+        logs = self._logs()
+        assert any(marker in logs for marker in (
+            "[FileFlows Real Image]", "Hardware acceleration pre-configured", "already installed.",
+        )), f"Entrypoint failed to verify pre-configured hardware drivers or Real Image marker. Logs:\n{logs}"
+        assert "apt-get update" not in logs, f"Container unexpectedly ran apt-get update on boot!\n{logs}"
+
         subprocess.run(["docker", "rm", "-f", self.CONTAINER_NAME], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

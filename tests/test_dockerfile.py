@@ -1,11 +1,13 @@
 """Static analysis and architectural invariant verification for Dockerfile definitions."""
 
+import base64
 import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCKERFILE = REPO_ROOT / "Dockerfile"
 DOCKERFILE_OPTIMIZED = REPO_ROOT / "Dockerfile.optimized"
+PATCHER_SCRIPT = REPO_ROOT / "scripts" / "patch_upstream.py"
 
 
 class TestDockerfileInvariants:
@@ -16,9 +18,9 @@ class TestDockerfileInvariants:
         assert DOCKERFILE.exists(), "Dockerfile must exist"
         assert DOCKERFILE_OPTIMIZED.exists(), "Dockerfile.optimized must exist"
 
-        content_main = DOCKERFILE.read_text(encoding="utf-8")
-        content_opt = DOCKERFILE_OPTIMIZED.read_text(encoding="utf-8")
-        assert content_main == content_opt, "Drift detected between Dockerfile and Dockerfile.optimized!"
+        assert DOCKERFILE.read_bytes() == DOCKERFILE_OPTIMIZED.read_bytes(), (
+            "Drift detected between Dockerfile and Dockerfile.optimized!"
+        )
 
     def test_multi_stage_topology(self):
         """Invariant: Dockerfile must define all canonical multi-stage targets."""
@@ -61,7 +63,9 @@ class TestDockerfileInvariants:
         """Invariant: Production stages must not install -dev header packages."""
         content = DOCKERFILE.read_text(encoding="utf-8")
         # Match any package ending in -dev followed by space or newline in apt-get install commands
-        dev_matches = re.findall(r"apt-get\s+install[^;]+?([a-zA-Z0-9_-]+-dev)", content, re.DOTALL)
+        dev_matches = re.findall(
+            r"\bapt(?:-get)?\s+(?:-[^\s]+\s+)*install[^;]+?([a-zA-Z0-9_.+-]+-dev)\b", content, re.DOTALL
+        )
         assert len(dev_matches) == 0, f"Found forbidden -dev package(s) in apt-get install: {dev_matches}"
 
     def test_cuda_flavor_architectures(self):
@@ -91,7 +95,7 @@ class TestDockerfileInvariants:
         assert "libnpp-13-4" in cuda13_body
 
         # Disallowed bloated CUDA compute packages
-        for heavy_pkg in ["libcublas", "libcusolver", "libcusparse", "libcufft", "cuda-compat"]:
+        for heavy_pkg in ["libcublas", "libcusolver", "libcusparse", "libcufft", "libcurand", "cuda-compat"]:
             assert heavy_pkg not in content, f"Forbidden heavy CUDA package '{heavy_pkg}' found in Dockerfile."
 
     def test_runtime_apt_neutralization(self):
@@ -111,3 +115,21 @@ class TestDockerfileInvariants:
         assert "DOTNET_EnableDiagnostics=0" in content
         assert "HEALTHCHECK" in content
         assert "ENTRYPOINT" in content
+
+    def test_embedded_patcher_matches_script(self):
+        """Invariant: the base64 remediator embedded in the Dockerfile must equal scripts/patch_upstream.py.
+
+        The build executes the embedded copy while the test suite exercises the file on
+        disk. If the two drift, every patcher test validates code that never runs.
+        """
+        assert PATCHER_SCRIPT.exists(), "scripts/patch_upstream.py must exist"
+        content = DOCKERFILE.read_text(encoding="utf-8")
+
+        blobs = re.findall(r'RUN echo "([A-Za-z0-9+/=]{100,})"\s*\|\s*base64 -d\s*\|\s*python3', content)
+        assert len(blobs) == 1, f"Expected exactly one embedded python payload, found {len(blobs)}"
+
+        embedded = base64.b64decode(blobs[0])
+        assert embedded == PATCHER_SCRIPT.read_bytes(), (
+            "Embedded base64 remediator has drifted from scripts/patch_upstream.py. "
+            "Regenerate it with: base64 -w0 scripts/patch_upstream.py"
+        )

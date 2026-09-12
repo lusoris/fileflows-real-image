@@ -10,6 +10,7 @@ Thank you for your interest in improving this image!
    - We follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `perf:`, `ci:`, `docs:`, `chore:`) to structure changelogs and upstream-anchored release tags.
 3. **Validate Locally**:
    - Run the local assertion and doc consistency suite before submitting:
+
      ```bash
      # Build image
      docker build -t ghcr.io/lusoris/fileflows-real-image:latest .
@@ -17,5 +18,6 @@ Thank you for your interest in improving this image!
      # Run complete test & doc consistency suite
      pytest tests/ -v --tb=short
      ```
+
 4. **Zero Base CVE Policy**:
    - Run `docker scout cves` or `trivy` on the built image to ensure no new base-image vulnerabilities are introduced.

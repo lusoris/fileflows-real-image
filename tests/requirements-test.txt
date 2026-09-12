@@ -1,6 +1,6 @@
+# Kept in sync with [project.dependencies] in pyproject.toml.
+# The container suite drives docker through its CLI and urllib, so no
+# `docker` or `requests` package is needed.
 pytest>=8.0.0
-requests>=2.31.0
-docker>=7.0.0
-pytest-timeout>=2.3.1
 pyyaml>=6.0.1
 pytest-cov>=5.0.0

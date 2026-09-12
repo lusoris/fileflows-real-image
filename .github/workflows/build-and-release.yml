@@ -30,7 +30,14 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
+  # A scheduled release must clear the same gates as a pull request; without this the
+  # 6-hourly path built and pushed to GHCR without running a single test.
+  quality-gates:
+    name: Offline Quality Gates
+    uses: ./.github/workflows/quality-gates.yml
+
   check-and-release:
+    needs: quality-gates
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -44,12 +51,22 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Fetching upstream digest for revenz/fileflows:latest..."
-          UPSTREAM_JSON=$(curl -s -f "https://hub.docker.com/v2/repositories/revenz/fileflows/tags/latest")
+          # `|| true` is load-bearing: steps run under `bash -e`, so a failed curl would
+          # abort the step and make the buildx fallback below unreachable.
+          UPSTREAM_JSON=$(curl -s -f "https://hub.docker.com/v2/repositories/revenz/fileflows/tags/latest" || true)
           UPSTREAM_DIGEST=$(echo "$UPSTREAM_JSON" | jq -r '.digest // empty')
 
           if [ -z "$UPSTREAM_DIGEST" ]; then
             echo "Failed to fetch upstream digest from Docker Hub API, checking via buildx..."
             UPSTREAM_DIGEST=$(docker buildx imagetools inspect --raw revenz/fileflows:latest 2>/dev/null | sha256sum | awk '{print "sha256:"$1}')
+          fi
+
+          # $UPSTREAM_DIGEST comes from a third-party API response; anything other than a
+          # literal sha256 digest must not reach $GITHUB_OUTPUT, where embedded newlines
+          # would let the response define arbitrary step outputs.
+          if ! printf '%s' "$UPSTREAM_DIGEST" | grep -qE '^sha256:[a-f0-9]{64}$'; then
+            echo "::warning::Upstream digest '$UPSTREAM_DIGEST' is not a valid sha256 digest; ignoring it."
+            UPSTREAM_DIGEST=""
           fi
 
           echo "Upstream digest: $UPSTREAM_DIGEST"
@@ -344,7 +361,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.version-extractor.outputs.short_version }}"
-          FULL_VERSION="${{ steps.version-extractor.outputs.full_version }}"
 
           # 1. Update version.txt if valid
           if [ -n "$VERSION" ] && [ "$VERSION" != "latest" ]; then
@@ -363,17 +379,33 @@ jobs:
           else
             RAW_SIZE=$(echo "$RAW_INSPECT" | jq -r '[.layers[].size] | add' 2>/dev/null || echo "0")
           fi
+          # Published upstream baseline for the comparison table, in decimal MB.
+          UPSTREAM_MB=999
+
+          # A failed measurement must never be published as if it were measured:
+          # fall back to leaving the existing badge and README metrics untouched.
+          SIZE_MB=""
           if [ -z "$RAW_SIZE" ] || [ "$RAW_SIZE" = "null" ] || [ "$RAW_SIZE" -eq 0 ] 2>/dev/null; then
-            RAW_SIZE=602000000
+            echo "::warning::Could not measure published image size from GHCR; size badge and README metrics left unchanged."
+          else
+            # Decimal MB, not MiB: the published baseline below is 999 decimal MB
+            # (998,895,482 bytes), so dividing by 1024 would mix unit systems and
+            # silently restate the same image as ~547 "MB" with a ~45% reduction.
+            SIZE_MB=$(( RAW_SIZE / 1000 / 1000 ))
+            if [ "$SIZE_MB" -lt 100 ] || [ "$SIZE_MB" -gt 2000 ]; then
+              echo "::warning::Measured content size ${SIZE_MB} MB is outside the plausible 100-2000 MB range; treating it as a failed measurement."
+              SIZE_MB=""
+            fi
           fi
-          SIZE_MB=$(( RAW_SIZE / 1024 / 1024 ))
-          if [ "$SIZE_MB" -lt 100 ] || [ "$SIZE_MB" -gt 2000 ]; then
-            SIZE_MB=574
+          if [ -n "$SIZE_MB" ]; then
+            # One decimal place, used verbatim in both the badge and the README row so
+            # the same metric is never published as three different numbers.
+            REDUCTION_PCT=$(awk -v b="$UPSTREAM_MB" -v s="$SIZE_MB" 'BEGIN{printf "%.1f", (b-s)*100/b}')
           fi
-          REDUCTION_PCT=$(( (999 - SIZE_MB) * 100 / 999 ))
 
           # 3. Update dynamic Shields endpoint JSON files in docs/badges/
           mkdir -p docs/badges
+          if [ -n "$SIZE_MB" ]; then
           cat <<EOF > docs/badges/image-size.json
           {
             "schemaVersion": 1,
@@ -382,7 +414,11 @@ jobs:
             "color": "brightgreen"
           }
           EOF
+          fi
 
+          # Guarded identically to version.txt/README: writing "latest" here would
+          # permanently break test_upstream_version_badge_matches_version_txt on main.
+          if [ -n "$VERSION" ] && [ "$VERSION" != "latest" ]; then
           cat <<EOF > docs/badges/upstream-version.json
           {
             "schemaVersion": 1,
@@ -391,6 +427,9 @@ jobs:
             "color": "blue"
           }
           EOF
+          else
+            echo "::warning::Upstream version could not be determined; version badge left unchanged."
+          fi
 
           cat <<EOF > docs/badges/flavors.json
           {
@@ -405,9 +444,11 @@ jobs:
           if [ -n "$VERSION" ] && [ "$VERSION" != "latest" ]; then
             sed -i -E "s/upstream version \`[0-9]+\.[0-9]+\.[0-9]+\`/upstream version \`$VERSION\`/g" README.md
           fi
-          SIZE_REGEX='\|\s*\*\*Content Size\*\*\s*\|\s*\*\*999 MB\*\*\s*\|\s*\*\*[0-9]+ MB\*\*\s*\|\s*\*\*-[0-9]+ MB \(-[0-9.]+\%\)\*\*\s*\|'
-          NEW_ROW="| **Content Size** | **999 MB** | **${SIZE_MB} MB** | **-$(( 999 - SIZE_MB )) MB (-${REDUCTION_PCT}%)** |"
-          sed -i -E "s/$SIZE_REGEX/$NEW_ROW/g" README.md
+          if [ -n "$SIZE_MB" ]; then
+            SIZE_REGEX='\|\s*\*\*Content Size\*\*\s*\|\s*\*\*999 MB\*\*\s*\|\s*\*\*[0-9]+ MB\*\*\s*\|\s*\*\*-[0-9]+ MB \(-[0-9.]+\%\)\*\*\s*\|'
+            NEW_ROW="| **Content Size** | **${UPSTREAM_MB} MB** | **${SIZE_MB} MB** | **-$(( UPSTREAM_MB - SIZE_MB )) MB (-${REDUCTION_PCT}%)** |"
+            sed -i -E "s/$SIZE_REGEX/$NEW_ROW/g" README.md
+          fi
 
           # 5. Commit and push back to main if changed
           git config user.name "github-actions[bot]"
