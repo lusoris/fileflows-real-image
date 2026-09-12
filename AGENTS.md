@@ -115,7 +115,6 @@ It achieves:
 │   ├── settings.json              # Zed editor configuration
 │   └── tasks.json                 # Zed development tasks
 ├── docs/                          # Material MkDocs documentation source
-│   ├── badges/                    # Dynamic Shields.io JSON endpoints
 │   ├── architecture.md            # Multi-stage design & rootfs squashing
 │   ├── hardware-acceleration.md   # GPU pass-through, drivers, and flavor matrix
 │   ├── security-hardening.md      # Zero-CVE policy and capability dropping

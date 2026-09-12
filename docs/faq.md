@@ -46,6 +46,41 @@ FileFlows is a standalone application that manages its own background workers an
 
 ---
 
+## Why is `libgdiplus` not installed, leaving System.Drawing non-functional?
+
+**Because nothing calls it, and installing it would add eight image parsers to a zero-CVE image.**
+
+`System.Drawing.Common` is present in the image, and any attempt to use it throws
+`TypeInitializationException: The type initializer for 'Gdip' threw an exception`, because the
+native GDI+ shim `libgdiplus` is absent. That is deliberate, and it matches upstream: upstream
+`revenz/fileflows:latest` ships no `runtimes/unix` asset for the package at all, so a Linux-capable
+System.Drawing has never existed in a FileFlows container.
+
+The assembly is not an imaging dependency. It arrives as a seven-hop transitive artifact of the
+SQL Server data-access stack:
+
+```text
+FileFlows.FlowRunner -> FileFlows.ServerShared -> NPoco.SqlServer -> Microsoft.Data.SqlClient
+  -> System.Configuration.ConfigurationManager -> System.Security.Permissions
+  -> System.Windows.Extensions -> System.Drawing.Common
+```
+
+A metadata scan of all 319 assemblies in `/app` finds **zero** references to `System.Drawing` from
+any of the 50 `FileFlows*.dll` files. FileFlows does all of its imaging with
+[SixLabors.ImageSharp](https://github.com/SixLabors/ImageSharp), which is fully managed and needs no
+native library. Only one physical copy of the assembly exists on disk, under `FlowRunner`; the
+server and agent manifests do not reference it at all.
+
+Installing `libgdiplus` does work — it is one `apt` line, and with it the shipped assembly encodes a
+PNG correctly. It is omitted because the cost points the wrong way: nine packages, eight of which are
+third-party C image codecs (`libtiff6`, `libjpeg-turbo8`, `libjpeg8`, `libgif7`, `libexif12`,
+`libjbig0`, `liblerc4`, `libdeflate0`), drawn from Ubuntu *universe* rather than *main*. Those are
+among the most vulnerability-prone parsers in the archive, and adding them to an image whose headline
+guarantee is zero CRITICAL/HIGH findings buys a capability with no caller.
+
+If a plugin ever fails with the `Gdip` error above, that is the signal to revisit this: the fix is a
+single package, and the reasoning here is what should be re-examined, not the symptom.
+
 ## Where should I report bugs?
 
 - **Image build errors, CVEs, or docker packaging issues**: Report on [GitHub Issues](https://github.com/lusoris/fileflows-real-image/issues).

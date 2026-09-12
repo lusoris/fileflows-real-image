@@ -355,19 +355,18 @@ jobs:
           docker pull ghcr.io/${{ github.repository }}:cuda13
           \`\`\`"
 
-      - name: Auto-Update Badges, Metrics, and Version in Repository
+      - name: Publish Badge Endpoints and Record Measured Metrics
         if: steps.check-upstream.outputs.should_build == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.version-extractor.outputs.short_version }}"
+          RELEASE_TAG="${{ steps.version-extractor.outputs.release_tag }}"
 
-          # 1. Update version.txt if valid
-          if [ -n "$VERSION" ] && [ "$VERSION" != "latest" ]; then
-            echo "$VERSION" > version.txt
-          fi
+          # Published upstream baseline for the comparison table, in decimal MB.
+          UPSTREAM_MB=999
 
-          # 2. Inspect real image content size from Docker Buildx
+          # 1. Inspect real image content size from Docker Buildx
           RAW_INSPECT=$(docker buildx imagetools inspect --raw "ghcr.io/${{ github.repository }}:latest" 2>/dev/null || echo "{}")
           RAW_SIZE=0
           if echo "$RAW_INSPECT" | jq -e '.manifests' >/dev/null 2>&1; then
@@ -379,18 +378,16 @@ jobs:
           else
             RAW_SIZE=$(echo "$RAW_INSPECT" | jq -r '[.layers[].size] | add' 2>/dev/null || echo "0")
           fi
-          # Published upstream baseline for the comparison table, in decimal MB.
-          UPSTREAM_MB=999
 
           # A failed measurement must never be published as if it were measured:
-          # fall back to leaving the existing badge and README metrics untouched.
+          # fall back to leaving the existing size badge untouched.
           SIZE_MB=""
           if [ -z "$RAW_SIZE" ] || [ "$RAW_SIZE" = "null" ] || [ "$RAW_SIZE" -eq 0 ] 2>/dev/null; then
-            echo "::warning::Could not measure published image size from GHCR; size badge and README metrics left unchanged."
+            echo "::warning::Could not measure published image size from GHCR; size badge left unchanged."
           else
-            # Decimal MB, not MiB: the published baseline below is 999 decimal MB
-            # (998,895,482 bytes), so dividing by 1024 would mix unit systems and
-            # silently restate the same image as ~547 "MB" with a ~45% reduction.
+            # Decimal MB, not MiB: the baseline above is 999 decimal MB (998,895,482 bytes),
+            # so dividing by 1024 would mix unit systems and silently restate the same
+            # image as ~547 "MB" with a ~45% reduction.
             SIZE_MB=$(( RAW_SIZE / 1000 / 1000 ))
             if [ "$SIZE_MB" -lt 100 ] || [ "$SIZE_MB" -gt 2000 ]; then
               echo "::warning::Measured content size ${SIZE_MB} MB is outside the plausible 100-2000 MB range; treating it as a failed measurement."
@@ -398,15 +395,21 @@ jobs:
             fi
           fi
           if [ -n "$SIZE_MB" ]; then
-            # One decimal place, used verbatim in both the badge and the README row so
-            # the same metric is never published as three different numbers.
+            # One decimal place, used verbatim everywhere the metric is published so the
+            # same number is never stated three different ways.
             REDUCTION_PCT=$(awk -v b="$UPSTREAM_MB" -v s="$SIZE_MB" 'BEGIN{printf "%.1f", (b-s)*100/b}')
           fi
 
-          # 3. Update dynamic Shields endpoint JSON files in docs/badges/
-          mkdir -p docs/badges
+          # 2. Generate the Shields endpoint JSON into a scratch directory.
+          #    These are published to the unprotected `badges` branch rather than committed
+          #    to main: main requires the "Quality Gate" status check, so a release run
+          #    cannot push there. Every previous attempt was rejected with
+          #    "GH006: Protected branch update failed", leaving the badges permanently stale.
+          BADGES="${RUNNER_TEMP}/badges"
+          rm -rf "$BADGES" && mkdir -p "$BADGES"
+
           if [ -n "$SIZE_MB" ]; then
-          cat <<EOF > docs/badges/image-size.json
+          cat <<EOF > "$BADGES/image-size.json"
           {
             "schemaVersion": 1,
             "label": "Content Size",
@@ -416,10 +419,8 @@ jobs:
           EOF
           fi
 
-          # Guarded identically to version.txt/README: writing "latest" here would
-          # permanently break test_upstream_version_badge_matches_version_txt on main.
           if [ -n "$VERSION" ] && [ "$VERSION" != "latest" ]; then
-          cat <<EOF > docs/badges/upstream-version.json
+          cat <<EOF > "$BADGES/upstream-version.json"
           {
             "schemaVersion": 1,
             "label": "Upstream Version",
@@ -431,7 +432,7 @@ jobs:
             echo "::warning::Upstream version could not be determined; version badge left unchanged."
           fi
 
-          cat <<EOF > docs/badges/flavors.json
+          cat <<EOF > "$BADGES/flavors.json"
           {
             "schemaVersion": 1,
             "label": "Hardware Flavors",
@@ -440,30 +441,52 @@ jobs:
           }
           EOF
 
-          # 4. Synchronize README.md metrics table & upstream text
-          if [ -n "$VERSION" ] && [ "$VERSION" != "latest" ]; then
-            sed -i -E "s/upstream version \`[0-9]+\.[0-9]+\.[0-9]+\`/upstream version \`$VERSION\`/g" README.md
+          # 3. Publish onto the `badges` branch, creating it if this is the first run.
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          WORK="${RUNNER_TEMP}/badges-branch"
+          rm -rf "$WORK"
+          if git ls-remote --exit-code --heads "$REMOTE" badges >/dev/null 2>&1; then
+            git clone --quiet --depth 1 --branch badges "$REMOTE" "$WORK"
+          else
+            mkdir -p "$WORK"
+            git -C "$WORK" init --quiet --initial-branch=badges
+            git -C "$WORK" remote add origin "$REMOTE"
           fi
-          if [ -n "$SIZE_MB" ]; then
-            SIZE_REGEX='\|\s*\*\*Content Size\*\*\s*\|\s*\*\*999 MB\*\*\s*\|\s*\*\*[0-9]+ MB\*\*\s*\|\s*\*\*-[0-9]+ MB \(-[0-9.]+\%\)\*\*\s*\|'
-            NEW_ROW="| **Content Size** | **${UPSTREAM_MB} MB** | **${SIZE_MB} MB** | **-$(( UPSTREAM_MB - SIZE_MB )) MB (-${REDUCTION_PCT}%)** |"
-            sed -i -E "s/$SIZE_REGEX/$NEW_ROW/g" README.md
+          cp "$BADGES"/*.json "$WORK"/
+          git -C "$WORK" add -A
+          if git -C "$WORK" diff --cached --quiet; then
+            echo "Badge endpoints unchanged; nothing to publish."
+          else
+            git -C "$WORK" -c user.name="github-actions[bot]" \
+                -c user.email="github-actions[bot]@users.noreply.github.com" \
+                commit --quiet -m "chore(badges): publish metrics for ${RELEASE_TAG}"
+            git -C "$WORK" push --quiet origin badges
+            echo "Published badge endpoints for ${RELEASE_TAG} to the badges branch."
           fi
 
-          # 5. Commit and push back to main if changed
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if ! git diff --quiet; then
-            echo "Committing updated badges, version, and metrics..."
-            git add version.txt README.md docs/badges/
-            git commit -m "chore(release): auto-update badges, metrics, and version for $VERSION [skip ci]"
-            git pull origin main --rebase || true
-            if ! git push origin HEAD:main; then
-              echo "::warning::Direct push to main was declined by GitHub branch protection."
-              echo "::warning::Required status checks are expected on main. Updated files are preserved."
-            else
-              echo "Successfully pushed updated badges and version to main."
-            fi
-          else
-            echo "No badge or metrics updates needed."
+          # 4. Record the measured numbers where they cannot go stale: the run summary and
+          #    the release body. version.txt and the README metrics table stay under human
+          #    review, because a protected branch cannot accept an automated commit.
+          {
+            echo "### Measured release metrics"
+            echo ""
+            echo "| Metric | Value |"
+            echo "| :--- | :--- |"
+            echo "| Upstream version | \`${VERSION}\` |"
+            echo "| Content size | ${SIZE_MB:-unmeasured} MB${REDUCTION_PCT:+ (-${REDUCTION_PCT}% vs ${UPSTREAM_MB} MB)} |"
+            echo "| Badge endpoints | [\`badges\` branch](https://github.com/${{ github.repository }}/tree/badges) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          PINNED=$(tr -d '[:space:]' < version.txt 2>/dev/null || echo "")
+          if [ -n "$VERSION" ] && [ "$VERSION" != "latest" ] && [ "$PINNED" != "$VERSION" ]; then
+            echo "::notice::version.txt pins ${PINNED} but upstream is ${VERSION}; update it in a pull request."
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> \`version.txt\` pins \`${PINNED}\` but upstream is \`${VERSION}\` — update it in a pull request." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ -n "$SIZE_MB" ] && gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            BODY=$(gh release view "$RELEASE_TAG" --json body -q .body)
+            printf '%s\n\n---\n\n**Measured content size:** %s MB (-%s%% vs %s MB upstream)\n' \
+              "$BODY" "$SIZE_MB" "$REDUCTION_PCT" "$UPSTREAM_MB" > "${RUNNER_TEMP}/notes.md"
+            gh release edit "$RELEASE_TAG" --notes-file "${RUNNER_TEMP}/notes.md"
           fi
