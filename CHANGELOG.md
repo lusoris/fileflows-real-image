@@ -12,6 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Badge and metric auto-updates never landed.** The release workflow committed regenerated
+  badges, `version.txt` and README metrics and pushed them to `main`, which branch protection
+  rejects with `GH006: Protected branch update failed` — 35 commits of history contain no
+  `github-actions[bot]` commit, and the step only emitted a `::warning::`, so every release since
+  the feature was written generated badges and discarded them. Generated endpoints are now
+  published to the unprotected `badges` branch, the README reads them from there, and the measured
+  size is recorded in the run summary and appended to the release body. `version.txt` and the
+  README metrics table stay under human review, since a protected branch cannot accept an
+  automated commit; drift is surfaced as a notice instead of being silently dropped.
+- `docs/badges/*.json` is no longer committed, so there is a single source of truth for each badge.
+  `tests/test_badges.py` now validates the generator in the release workflow and the README links
+  that point at it, and asserts the in-tree copies are not reintroduced.
+
 - **Azure.Identity was upgraded without its dependencies and could no longer load.** Bumping the
   assembly while Azure.Core stayed at upstream's 1.6.0 produced
   `FileNotFoundException: Could not load file or assembly 'Azure.Core, Version=1.38.0.0'` on any
@@ -127,6 +140,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   FAQ question headings moved from `h3` to `h2` so heading levels increment correctly.
 
 ### Added
+
+- FAQ entry recording why `libgdiplus` is deliberately omitted: a metadata scan of all 319
+  assemblies in `/app` finds zero references to `System.Drawing` from any of the 50 `FileFlows*.dll`
+  files — imaging is done with SixLabors.ImageSharp, and `System.Drawing.Common` is only a seven-hop
+  transitive shim from `Microsoft.Data.SqlClient`. Installing the native library works but would add
+  eight third-party C image codecs from Ubuntu *universe* to a zero-CVE image for a capability with
+  no caller. Upstream ships no `runtimes/unix` asset either, so this matches upstream behaviour.
 
 - `test_embedded_patcher_matches_script` asserts the base64 remediator embedded in the Dockerfile is
   byte-identical to `scripts/patch_upstream.py`. The build executes the embedded copy while the suite
