@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_Nothing yet._
+
+---
+
+## [26.09.2-real.16] - 2026-09-12
+
+Republished unchanged as `26.09.2-real.17`, a forced rebuild used to verify that the
+badge push reaches the `badges` branch.
+
 ### Fixed
 
 - **Badge and metric auto-updates never landed.** The release workflow committed regenerated
@@ -25,6 +34,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tests/test_badges.py` now validates the generator in the release workflow and the README links
   that point at it, and asserts the in-tree copies are not reintroduced.
 
+### Added
+
+- FAQ entry recording why `libgdiplus` is deliberately omitted: a metadata scan of all 319
+  assemblies in `/app` finds zero references to `System.Drawing` from any of the 50 `FileFlows*.dll`
+  files — imaging is done with SixLabors.ImageSharp, and `System.Drawing.Common` is only a seven-hop
+  transitive shim from `Microsoft.Data.SqlClient`. Installing the native library works but would add
+  eight third-party C image codecs from Ubuntu _universe_ to a zero-CVE image for a capability with
+  no caller. Upstream ships no `runtimes/unix` asset either, so this matches upstream behaviour.
+
+---
+
+## [26.09.2-real.15] - 2026-09-12
+
+First release built by the gated pipeline: the offline quality checks now run to
+completion before anything is built or pushed.
+
+### Fixed
+
 - **Azure.Identity was upgraded without its dependencies and could no longer load.** Bumping the
   assembly while Azure.Core stayed at upstream's 1.6.0 produced
   `FileNotFoundException: Could not load file or assembly 'Azure.Core, Version=1.38.0.0'` on any
@@ -35,7 +62,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `dotnet publish` against net10.0 and reduced to what `/app` does not already satisfy;
   Microsoft.IdentityModel.Abstractions (8.19.1) and System.Security.Cryptography.ProtectedData
   (4.7.0) are already new enough and are left alone. Every member is clean per OSV.
-
 - **CVE-2025-6965 (HIGH) in the bundled SQLite is now remediated.**
   `SQLitePCLRaw.lib.e_sqlite3` 2.1.11 shipped a vulnerable SQLite build and was not in the
   remediator's scope. It is now upgraded to 2.1.12, the minimal fix on that branch. Because it is a
@@ -47,7 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   package. It now scans `os,library` with unfixed findings included. The image passes under that
   strictest setting with zero CRITICAL/HIGH across OS packages, all four `.deps.json` manifests and
   the bundled Go binary.
-
 - **Remediator no longer reports a patch it did not apply.** `scripts/patch_upstream.py` rewrote
   `.deps.json` to the safe version even when zero assemblies were replaced, producing a manifest that
   claimed a patched package while the vulnerable DLL remained on disk. The upgrade path now fails
@@ -114,7 +139,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stays identical to upstream's; `fileVersion` is read from the installed assembly.
 - The patcher refuses to run if upstream has moved past the pinned target, rather than silently
   installing an older build.
-
 - `make test` and `make coverage` now run every offline suite instead of a hand-maintained file list,
   which had silently excluded `tests/test_patcher.py` — the tests for the only production module.
 - Coverage now measures production code (`--cov=scripts`) rather than the test files themselves, with
@@ -141,13 +165,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- FAQ entry recording why `libgdiplus` is deliberately omitted: a metadata scan of all 319
-  assemblies in `/app` finds zero references to `System.Drawing` from any of the 50 `FileFlows*.dll`
-  files — imaging is done with SixLabors.ImageSharp, and `System.Drawing.Common` is only a seven-hop
-  transitive shim from `Microsoft.Data.SqlClient`. Installing the native library works but would add
-  eight third-party C image codecs from Ubuntu *universe* to a zero-CVE image for a capability with
-  no caller. Upstream ships no `runtimes/unix` asset either, so this matches upstream behaviour.
-
 - `test_embedded_patcher_matches_script` asserts the base64 remediator embedded in the Dockerfile is
   byte-identical to `scripts/patch_upstream.py`. The build executes the embedded copy while the suite
   exercises the file on disk; nothing previously prevented them from drifting apart.
@@ -166,6 +183,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Gate coverage widened: the `-dev` package check catches `apt-get -y install` and `apt install`
   forms, `libcurand` joins the forbidden CUDA list, the Dockerfile mirror check compares bytes, and
   the workflow invariants no longer skip `.yaml` files.
+
+---
+
+## [26.09.2-real.13] - 2026-09-10
+
+Republished unchanged as `26.09.2-real.14` by the 24-hour scheduled rebuild.
+
+### Added
+
+- Dynamic semantic NuGet remediation (`scripts/patch_upstream.py`, embedded in the Dockerfile):
+  inspects every `/app/**/*.deps.json`, compares the declared versions against the advisories,
+  and upgrades the affected assemblies at build time. Decouples the image from whatever
+  dependency versions upstream happens to ship (Invariant 10).
+
+---
+
+## [26.09.2-real.12] - 2026-09-09
+
+### Changed
+
+- The release workflow extracts the matching section from this changelog and hands it to
+  GitHub's automatic release-notes generation, so each release carries its own notes.
 
 ---
 
