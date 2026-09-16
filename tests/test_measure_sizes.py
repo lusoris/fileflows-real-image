@@ -127,3 +127,76 @@ class TestMeasureSizes:
             captured_md = capsys.readouterr().out
             assert rc_md == 0
             assert "| Flavor | Tag |" in captured_md
+
+            rc_default = main([])
+            captured_default = capsys.readouterr().out
+            assert rc_default == 0
+            assert "Upstream (revenz/fileflows:latest):" in captured_default
+
+    def test_inspect_raw_manifest_branches(self):
+        """Assert inspect_raw_manifest handles success, subprocess failure, and parse errors."""
+        from measure_sizes import inspect_raw_manifest
+        from unittest.mock import MagicMock
+
+        # Success case
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout='{"schemaVersion": 2}')
+            res = inspect_raw_manifest("test:tag")
+            assert res == {"schemaVersion": 2}
+
+            # Non-zero returncode
+            mock_run.return_value = MagicMock(returncode=1, stdout="")
+            assert inspect_raw_manifest("test:tag") is None
+
+            # Invalid JSON
+            mock_run.return_value = MagicMock(returncode=0, stdout="not-json")
+            assert inspect_raw_manifest("test:tag") is None
+
+            # Exception
+            mock_run.side_effect = OSError("command not found")
+            assert inspect_raw_manifest("test:tag") is None
+
+    def test_measure_image_bytes_multiarch_and_single(self):
+        """Assert measure_image_bytes resolves multiarch manifest and single manifest."""
+        from measure_sizes import measure_image_bytes
+
+        # Multiarch manifest
+        multiarch = {
+            "manifests": [
+                {
+                    "platform": {"architecture": "amd64", "os": "linux"},
+                    "digest": "sha256:child_amd64",
+                },
+                {
+                    "platform": {"architecture": "arm64", "os": "linux"},
+                    "digest": "sha256:child_arm64",
+                },
+            ]
+        }
+        child_manifest = {
+            "layers": [
+                {"size": 120_000_000},
+                {"size": 80_000_000},
+            ]
+        }
+
+        def mock_inspect(ref):
+            if "child_amd64" in ref:
+                return child_manifest
+            if "parent" in ref:
+                return multiarch
+            return None
+
+        with patch("measure_sizes.inspect_raw_manifest", side_effect=mock_inspect):
+            size = measure_image_bytes("ghcr.io/repo:parent", "amd64")
+            assert size == 200_000_000
+
+            size_missing = measure_image_bytes("ghcr.io/repo:nonexistent", "amd64")
+            assert size_missing == 0
+
+    def test_measure_all_metrics_upstream_fallback(self):
+        """Assert measure_all_metrics uses fallback bytes when upstream fails inspection."""
+        with patch("measure_sizes.measure_image_bytes", return_value=0):
+            metrics = measure_all_metrics()
+            assert metrics["upstream_bytes"] == 811_717_760
+            assert metrics["upstream_mb"] == 812
