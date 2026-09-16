@@ -10,7 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+
+- **Changelog and release notes extraction engine repaired:**
+  - Resolved issue where automated releases and scheduled rebuilds emitted empty changelog sections and fell back to GitHub's auto-generated release notes (which repeatedly listed stale PRs).
+  - Implemented multi-tiered changelog extraction in `.github/workflows/build-and-release.yml`:
+    1. Exact match for current tag (`## [26.09.3-real.X]`).
+    2. Base version match (`## [26.09.3-real.*]`).
+    3. Meaningful content under `## [Unreleased]`.
+    4. Deterministic synthetic descriptions differentiating upstream syncs from 24-hour security rebuilds.
+  - Replaced GitHub's `--generate-notes` fallback with deterministic local Git commit logging (`PREV_TAG..HEAD`) to eliminate duplicate past PR attribution.
+- **Dynamic image sizing and baseline measurement engine:**
+  - Eliminated hardcoded `UPSTREAM_MB=999` baseline in the release pipeline; now queries `revenz/fileflows:latest` dynamically via Buildx (accounting for upstream's size reduction from 999 MB to 812 MB in 26.09.3).
+  - Replaced single-flavor `:latest` measurement with dynamic inspection of all 5 published flavors (`latest`, `intel`, `amd`, `cuda`, `cuda13`).
+  - Added `scripts/measure_sizes.py` CLI utility and `make measure-sizes` target to measure exact layer sizes and reduction ratios across all flavors.
+  - Updated documentation tables in `README.md`, `AGENTS.md`, `docs/hardware-acceleration.md`, and `docs/index.md` to align with measured content sizes (812 MB upstream baseline, `:cuda` at 387 MB, `:cuda13` at 703 MB, `:intel` at 515 MB, `:amd` at 473 MB, `:latest` at 574 MB).
 
 ---
 

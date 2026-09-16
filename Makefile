@@ -61,6 +61,9 @@ docs-serve: ## Start local MkDocs live-reload server
 docs-build: ## Build documentation site strictly
 	mkdocs build --strict
 
+measure-sizes: ## Measure image sizes of upstream and published flavors
+	python3 scripts/measure_sizes.py
+
 clean: ## Clean local build artifacts and caches
 	rm -rf build-docs/site .pytest_cache __pycache__ tests/__pycache__ scripts/__pycache__ \
 	       htmlcov .coverage .ruff_cache
