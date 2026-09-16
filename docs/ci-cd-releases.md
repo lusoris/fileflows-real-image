@@ -12,17 +12,17 @@ $$\text{Release Tag} = \mathbf{v\langle\text{upstream-calver}\rangle\text{-real.
 
 **Example**:
 
-- Upstream FileFlows Version: `26.09.2`
-- Initial Real Image Release: `v26.09.2-real.1`
-- Security update or maintenance build for the same upstream release: `v26.09.2-real.2`
+- Upstream FileFlows Version: `26.09.3`
+- Initial Real Image Release: `v26.09.3-real.1`
+- Security update or maintenance build for the same upstream release: `v26.09.3-real.2`
 
 ### Container Image Tags
 
 Every build automatically publishes to GitHub Container Registry (`ghcr.io/lusoris/fileflows-real-image`):
 
 - `latest`: The newest stable release.
-- `26.09.2`: The major.minor.patch release of upstream.
-- `26.09.2-real.1`: Immutable tag pinned to the exact downstream build and upstream digest.
+- `26.09.3`: The major.minor.patch release of upstream.
+- `26.09.3-real.1`: Immutable tag pinned to the exact downstream build and upstream digest.
 
 ---
 
@@ -36,7 +36,7 @@ Security vulnerabilities in upstream base packages (glibc, libssl, curl) are dis
    - Re-pulls the latest Ubuntu 26.04 package repositories.
    - Re-applies all debloat and hardening optimizations.
    - Runs full image verification tests.
-   - Publishes a new revision (e.g. `v26.09.2-real.2`) with patched base packages.
+   - Publishes a new revision (e.g. `v26.09.3-real.2`) with patched base packages.
 
 This ensures zero known CVEs are retained in the published image.
 
