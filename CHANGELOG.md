@@ -14,6 +14,31 @@ _Nothing yet._
 
 ---
 
+## [26.09.3-real.1] - 2026-09-16
+
+Synchronized with upstream release `revenz/fileflows:latest` (`26.09.3.8327`, digest `sha256:51323683e666f3f613fd0c17aeb26d08860cdf39b9633c9ba869404d9ba50ef2`).
+
+### Changed
+
+- **Synchronized with upstream FileFlows 26.09.3:**
+  - Carries upstream's streamlined Community Repository support (in-console sharing of Flows, Formulas, Scripts, and DockerMods), simplified account-linked licensing, and the new re-engineered Database Utility.
+  - Verified dynamic semantic NuGet remediation across all `/app/**/*.deps.json` manifests on `aspnetcore-runtime-10.0` (Ubuntu 26.04):
+    - `Azure.Identity`: upgraded 1.3.0 -> 1.11.4 with full runtime dependency closure (`Azure.Core` 1.38.0, `Microsoft.Bcl.AsyncInterfaces` 1.1.1, `Microsoft.Identity.Client` 4.61.3, `Microsoft.Identity.Client.Extensions.Msal` 4.61.3, `System.ClientModel` 1.0.0, `System.Memory.Data` 1.0.2).
+    - `Microsoft.Data.SqlClient`: upgraded 3.0.0 -> 3.1.5.
+    - `SQLitePCLRaw.lib.e_sqlite3`: upgraded 2.1.11 -> 2.1.12 (native per-RID replacement).
+    - `System.Drawing.Common`: upgraded 4.7.0 -> 4.7.2.
+  - Verified upstream startup entrypoint driver neutralization (`intel-media-va-driver-non-free` runtime `apt-get` bypass preserved).
+  - Maintained zero Critical/High base-image and library CVEs across OS packages, all `.deps.json` manifests, and bundled Go binaries.
+  - Maintained `< 1s` container boot time and instant Web UI availability.
+
+---
+
+## [26.09.2-real.18] - 2026-09-14
+
+Republished unchanged as `26.09.2-real.19` by the 24-hour scheduled rebuild.
+
+---
+
 ## [26.09.2-real.16] - 2026-09-12
 
 Republished unchanged as `26.09.2-real.17`, a forced rebuild used to verify that the

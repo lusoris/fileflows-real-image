@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fileflows-real-image-tests"
-version = "26.09.2"
+version = "26.09.3"
 description = "Test suite and verification tools for FileFlows Real Image"
 readme = "README.md"
 requires-python = ">=3.10"

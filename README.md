@@ -20,7 +20,7 @@ Complete documentation is available at **[lusoris.github.io/fileflows-real-image
 
 ## Why FileFlows Real Image?
 
-The upstream container (`revenz/fileflows:latest`, upstream version `26.09.2`) is distributed with full developer toolchains, unneeded service daemons, and missing drivers that slow down homelab and production deployments:
+The upstream container (`revenz/fileflows:latest`, upstream version `26.09.3`) is distributed with full developer toolchains, unneeded service daemons, and missing drivers that slow down homelab and production deployments:
 
 - **Full .NET 10 SDK Bloat (638 MB)**: Upstream installs `dotnet-sdk-10.0` instead of the lean `aspnetcore-runtime-10.0` (~96 MB).
 - **15–20s Boot Delay**: Upstream triggers `apt-get update && apt-get install intel-media-va-driver-non-free` on **every container boot**. Real Image pre-bakes the driver stack for instant `< 1s` boot.
