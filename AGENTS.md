@@ -28,7 +28,7 @@ It achieves:
 
 - **Zero Base CVEs**: 100% elimination of base-image vulnerabilities (including the Canonical Rockcraft `pebble` Go stdlib CVEs).
 - **Instant Boot (< 1s)**: Hardware acceleration drivers are baked in at build time; runtime `apt-get` calls in entrypoints are neutralized.
-- **Slashed Footprint**: Image content size drops from 999 MB to **470–720 MB**; virtual disk usage is cut by **45–72%**.
+- **Slashed Footprint**: Image content size drops from 812 MB to **387–703 MB**; virtual disk usage is cut by **18–55%**.
 - **Specialized Hardware Flavors**: Individual vendor-optimized flavors for Intel, AMD, and NVIDIA eliminate competing driver bloat.
 
 ---
@@ -72,10 +72,10 @@ It achieves:
 
 | Flavor | Target Hardware | Content Size | Virtual Size | Included Acceleration Stack |
 | :--- | :--- | :--- | :--- | :--- |
-| **`:intel`** | Intel Core Gen 8–14+, Arc Alchemist, Battlemage, N-series | **514 MB** | **1.76 GB** | Intel Media Driver (`iHD` 26.1+), Level Zero (`libze`), oneVPL, OpenCL ICD |
+| **`:intel`** | Intel Core Gen 8–14+, Arc Alchemist, Battlemage, N-series | **515 MB** | **1.76 GB** | Intel Media Driver (`iHD` 26.1+), Level Zero (`libze`), oneVPL, OpenCL ICD |
 | **`:amd`** | AMD Radeon RX 5000–8000 series, Ryzen 6000–9000 APUs | **473 MB** | **1.65 GB** | Mesa Gallium (`radeonsi`), RADV Vulkan, AMDGPU DRM |
-| **`:cuda`** | NVIDIA Pascal through Ada Lovelace (Host-based CUDA) | **473 MB** | **1.65 GB** | Host-injected driver hooks (`libcuda`, NVENC, NVDEC) with zero package bloat |
-| **`:cuda13`** | NVIDIA Ada Lovelace, Blackwell (RTX 50xx), Hopper (CUDA 13.4) | **720 MB** | **2.33 GB** | Minimal NVIDIA CUDA 13.4 runtime + NVRTC & NPP video filters |
+| **`:cuda`** | NVIDIA Pascal through Ada Lovelace (Host-based CUDA) | **387 MB** | **1.27 GB** | Host-injected driver hooks (`libcuda`, NVENC, NVDEC) with zero package bloat |
+| **`:cuda13`** | NVIDIA Ada Lovelace, Blackwell (RTX 50xx), Hopper (CUDA 13.4) | **703 MB** | **2.33 GB** | Minimal NVIDIA CUDA 13.4 runtime + NVRTC & NPP video filters |
 | **`:latest`** / **`:all`** | Universal multi-vendor default | **574 MB** | **2.00 GB** | Full Intel Media Driver, Mesa Gallium VA-API, and NVIDIA host driver hooks |
 
 ---

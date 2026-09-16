@@ -8,10 +8,10 @@ FileFlows Real Image provides specialized, vendor-optimized container image flav
 
 | Flavor Tag | Target Hardware / Architecture | Content Size | Virtual Size | Driver Stack Included |
 | :--- | :--- | :--- | :--- | :--- |
-| **`:intel`** | Intel Core Gen 8–14+, Arc Alchemist, Battlemage, N-series | **514 MB** | **1.76 GB** | Intel Media Driver (iHD 26.1+), Level Zero (`libze`), oneVPL, OpenCL ICD |
+| **`:intel`** | Intel Core Gen 8–14+, Arc Alchemist, Battlemage, N-series | **515 MB** | **1.76 GB** | Intel Media Driver (iHD 26.1+), Level Zero (`libze`), oneVPL, OpenCL ICD |
 | **`:amd`** | AMD Radeon RX 5000–8000 series, Ryzen 6000–9000 APUs | **473 MB** | **1.65 GB** | Mesa Gallium (`radeonsi`), RADV Vulkan, AMDGPU DRM |
-| **`:cuda`** | NVIDIA Pascal through Ada Lovelace (Host-Based CUDA) | **473 MB** | **1.65 GB** | Host-injected driver hooks (`libcuda`, NVENC, NVDEC) with zero package bloat |
-| **`:cuda13`** | NVIDIA Ada Lovelace, Blackwell (RTX 50xx), Hopper (CUDA 13.4) | **720 MB** | **2.33 GB** | Minimal NVIDIA CUDA 13.4 runtime + NVRTC & NPP video filters |
+| **`:cuda`** | NVIDIA Pascal through Ada Lovelace (Host-Based CUDA) | **387 MB** | **1.27 GB** | Host-injected driver hooks (`libcuda`, NVENC, NVDEC) with zero package bloat |
+| **`:cuda13`** | NVIDIA Ada Lovelace, Blackwell (RTX 50xx), Hopper (CUDA 13.4) | **703 MB** | **2.33 GB** | Minimal NVIDIA CUDA 13.4 runtime + NVRTC & NPP video filters |
 | **`:latest`** / **`:all`** | Universal multi-vendor default (Intel + AMD + NVIDIA runtimes) | **574 MB** | **2.00 GB** | Full Intel Media Driver, Mesa Gallium VA-API, and NVIDIA host driver hooks |
 
 ---

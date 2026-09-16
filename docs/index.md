@@ -8,7 +8,7 @@ A multi-stage, hardened, and streamlined container image for [FileFlows](https:/
 [![CI Build & Release](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/lusoris/fileflows-real-image/actions/workflows/build-and-release.yml)
 [![License: EUPL 1.2](https://img.shields.io/badge/License-EUPL%201.2-blue.svg)](https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12)
 [![Base CVEs](https://img.shields.io/badge/Base%20CVEs-0%20(100%25%20Fixed)-brightgreen)](security-hardening.md)
-[![Image Size](https://img.shields.io/static/v1?label=Content%20Size&message=564%20MB%20(-43%25)&color=brightgreen)](architecture.md)
+[![Image Size](https://img.shields.io/static/v1?label=Content%20Size&message=574%20MB%20(-29%25)&color=brightgreen)](architecture.md)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Project-F16061?logo=ko-fi&logoColor=white)](https://ko-fi.com/lusoris)
 
 ---
@@ -21,7 +21,7 @@ FileFlows is an exceptional distributed media processing automation platform. Ho
 
 ```mermaid
 flowchart LR
-    subgraph Upstream["Upstream: revenz/fileflows:latest (999 MB)"]
+    subgraph Upstream["Upstream: revenz/fileflows:latest (812 MB)"]
         A[dotnet-sdk-10.0: 638MB]
         B[Rockcraft pebble daemon: 6 CVEs]
         C[-dev header packages: 120MB]
@@ -29,7 +29,7 @@ flowchart LR
         E[Missing Intel driver: 15s boot delay]
     end
 
-    subgraph RealImage["Real Image: ghcr.io/lusoris/fileflows-real-image:latest (564 MB)"]
+    subgraph RealImage["Real Image: ghcr.io/lusoris/fileflows-real-image:latest (574 MB)"]
         F[aspnetcore-runtime-10.0: 96MB]
         G[Rootfs Flattened: 0 Base CVEs]
         H[Shared dynamic libs only]
@@ -46,8 +46,8 @@ flowchart LR
 
 | Metric | Upstream (`revenz/fileflows:latest`) | Real Image (`ghcr.io/lusoris/fileflows-real-image:latest`) | Difference |
 | :--- | :--- | :--- | :--- |
-| **Content Size** | **999 MB** | **564 MB** | **-435 MB (-43.5%)** |
-| **Virtual Disk Usage** | **3.57 GB** | **2.06 GB** | **-1.51 GB (-42.3%)** |
+| **Content Size** | **812 MB** | **574 MB** | **-238 MB (-29.3%)** |
+| **Virtual Disk Usage** | **2.84 GB** | **2.00 GB** | **-0.84 GB (-29.6%)** |
 | **Installed Packages** | 1,354 packages | 615 packages | **-739 packages (-54.6%)** |
 | **Base Image CVEs** | 1 Critical, 5 High, 2 Medium | **0 Critical, 0 High, 0 Medium** | **100% Fixed** |
 | **Startup Delay** | 15–20s (`apt-get` on boot) | **< 1 second** (`pre-baked`) | **Instant Startup** |
