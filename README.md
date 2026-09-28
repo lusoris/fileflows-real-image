@@ -18,7 +18,7 @@ In short:
 4. **You can't tell who you are dealing with.** The EULA names only "FileFlows", which is not a company. fileflows.com has no imprint, no terms, no address and no usable privacy policy.
 5. **The website itself tracks visitors without asking.**
 
-In my view, this is not compatible with EU data protection and consumer law. I am filing a complaint with an EU data protection authority, and I am done with FileFlows.
+In my view, this breaks data protection and consumer law in the EU, the UK and New Zealand. I will file complaints with the authorities, and I am done with FileFlows.
 
 Everything below is sourced. Pages were retrieved on **28 September 2026** unless another date is given.
 
@@ -134,9 +134,11 @@ if (settings?.DisableTelemetry == true)
 
 ---
 
-## Why I consider this unlawful in the EU
+## Which laws I consider broken
 
 This is my own assessment, not legal advice, and no authority or court has ruled on it yet.
+
+### European Union (GDPR, ePrivacy, consumer law)
 
 - **EU law applies, even though the company is in New Zealand.** The GDPR covers non-EU companies that offer goods or services to people in the EU, *"irrespective of whether a payment … is required"* ([Art. 3(2)](https://eur-lex.europa.eu/eli/reg/2016/679/oj#art_3)), so the free tier counts. FileFlows is clearly offered to people in the EU:
   - the app ships in German, French and other EU languages;
@@ -153,9 +155,41 @@ This is my own assessment, not legal advice, and no authority or court has ruled
 - **Reading data from people's devices needs consent.** This applies to the app's hardware and usage data even if it were anonymous, and to the website's Google Analytics and YouTube cookies ([ePrivacy Directive Art. 5(3)](https://eur-lex.europa.eu/eli/dir/2002/58/oj); [EDPB Guidelines 2/2023](https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-22023-technical-scope-art-53-eprivacy-directive_en); [*Planet49* (C‑673/17)](https://curia.europa.eu/juris/liste.jsf?num=C-673/17)).
 - **Buyers must get the trader's identity, address and withdrawal information before paying** ([Consumer Rights Directive 2011/83/EU, Art. 6](https://eur-lex.europa.eu/eli/dir/2011/83/oj)).
 
+### Germany
+
+- **§ 25 TDDDG:** storing or reading information on a user's device requires consent. That covers the app's device data and the website's Google Analytics and YouTube cookies.
+- **§ 312d BGB with Art. 246a § 1 EGBGB:** before a distance contract, the trader must give its identity, geographical address and information on the right of withdrawal. fileflows.com and the checkout give none of these.
+- **§§ 5, 5a UWG (misleading practices):**
+  - the telemetry is advertised as *"completely anonymous"*, with an *"exact list"* that leaves out the permanent ID;
+  - the fact that free use is paid for with data is not mentioned where people choose a plan.
+
+### United Kingdom (UK GDPR, PECR)
+
+- **UK GDPR applies** to non-UK companies offering services to people in the UK or monitoring them ([Art. 3(2) UK GDPR](https://www.legislation.gov.uk/eur/2016/679/article/3)). FileFlows is offered to UK users.
+- **The same UK GDPR breaches as in the EU:**
+  - no valid consent (Art. 6, 7(2)–(4));
+  - transparency (Art. 12–13);
+  - data protection by default (Art. 25).
+- **No UK representative** (Art. 27 UK GDPR).
+- **PECR regulation 6:** cookies and device access without consent.
+
+### New Zealand, the operator's own country (Privacy Act 2020, Fair Trading Act 1986)
+
+- **The Privacy Act 2020 applies to New Zealand companies wherever their users live** ([s 4](https://www.legislation.govt.nz/act/public/2020/0031/latest/)).
+- **Information privacy principles:**
+  - **IPP 1:** collection must be necessary for a lawful purpose. Paying users can switch the telemetry off, so it isn't necessary.
+  - **IPP 3:** users must be told the purpose and the agency's name and address. The only "notice" is a clause in an EULA that names a product, not a company.
+  - **IPP 4:** collection must be fair and not unreasonably intrusive. Here free users can't opt out, and the data is misdescribed as anonymous.
+- **Fair Trading Act 1986, ss 9 and 11:** misleading conduct, through the *"completely anonymous"* and *"exact list"* claims.
+
 ## What I am doing about it
 
-I am filing a complaint with an EU data protection authority. In my view, FileFlows should not be allowed to operate like this in the EU, and I expect the regulators to put a stop to it.
+I will file complaints and reports with data protection and consumer protection authorities in the EU and New Zealand, and a UK user will file with the ICO. **The full texts will be published in this repository once they have been sent.**
+
+- **Data protection authorities** can order the telemetry and tracking stopped, including a ban on processing (GDPR Art. 58(2)(f)).
+- **Consumer protection authorities** can, where no other means work, restrict access to a trader's website or order warnings to consumers (Regulation (EU) 2017/2394, Art. 9(4)(g)).
+
+In my view, FileFlows should not be allowed to operate like this in the EU, and I expect the regulators to put a stop to it.
 
 Until then, I am done with FileFlows. I will not maintain, build or promote anything for it.
 
